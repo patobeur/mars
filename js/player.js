@@ -17,11 +17,12 @@ export const player = {
     currentAction: null,
 };
 
-// --- Vecteurs temporaires ---
+// --- Vecteurs et objets temporaires ---
 const vTmp = new THREE.Vector3();
 const vTmp2 = new THREE.Vector3();
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const X_AXIS = new THREE.Vector3(1, 0, 0);
+const lookAtObject = new THREE.Object3D(); // Pour le calcul de l'orientation
 
 // --- Fonctions utilitaires ---
 function projectOnPlane(vector, planeNormal, resultVec) {
@@ -33,7 +34,6 @@ function projectOnPlane(vector, planeNormal, resultVec) {
 function switchToAction(name, duration = 0.2) {
     const newAction = player.actions[name];
     if (!newAction) {
-        // console.warn(`Animation "${name}" not found.`);
         return;
     }
     if (newAction === player.currentAction) return;
@@ -63,7 +63,6 @@ async function loadPlayerModel() {
             player.actions[clip.name] = player.mixer.clipAction(clip);
         });
 
-        // Lancer l'animation par défaut ('Idle') ou la première disponible
         if (player.actions['Idle']) {
             player.currentAction = player.actions['Idle'];
             player.currentAction.play();
@@ -105,18 +104,15 @@ export async function initPlayer() {
 export function applyPlayerInputs(dt) {
     const normal = player.pos.clone().normalize();
 
-    // --- Détection du sol ---
     const raycaster = new THREE.Raycaster(player.pos, normal.clone().multiplyScalar(-1));
     const intersects = raycaster.intersectObject(planet);
     const distToGround = intersects.length > 0 ? intersects[0].distance : Infinity;
     player.isGrounded = distToGround < player.height + 0.1;
 
-    // --- Saut ---
     if (keys["Space"] && player.isGrounded) {
         player.vel.addScaledVector(normal, CONFIG.player.jumpStrength);
     }
 
-    // --- Mouvement ---
     const east = projectOnPlane(X_AXIS, normal, vTmp).normalize();
     const north = vTmp2.copy(east).cross(normal);
 
@@ -143,8 +139,13 @@ export function updatePlayerMesh(dt) {
     // --- Orientation ---
     if (tangentVel.lengthSq() > 0.01) {
         const forward = tangentVel.clone().normalize();
-        const targetQuaternion = new THREE.Quaternion().lookAt(forward, normal);
-        player.mesh.quaternion.slerp(targetQuaternion, 0.2);
+
+        // Correction: Utiliser un Object3D pour calculer la rotation cible
+        lookAtObject.up.copy(normal);
+        lookAtObject.lookAt(forward);
+
+        player.mesh.quaternion.slerp(lookAtObject.quaternion, 0.2);
+
     } else {
         const defaultQuaternion = new THREE.Quaternion().setFromUnitVectors(Y_AXIS, normal);
         player.mesh.quaternion.slerp(defaultQuaternion, 0.1);
