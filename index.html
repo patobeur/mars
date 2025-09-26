@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="fr">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Top-Down Mars • Gravité centripète</title>
+		<style>
+			html,
+			body {
+				height: 100%;
+				margin: 0;
+				background: #0a0a0a;
+				color: #eee;
+				font-family: system-ui, Segoe UI, Roboto, sans-serif;
+			}
+			#ui {
+				position: fixed;
+				top: 12px;
+				left: 12px;
+				background: rgba(0, 0, 0, 0.45);
+				padding: 10px 12px;
+				border-radius: 10px;
+				font-size: 14px;
+				backdrop-filter: blur(4px);
+			}
+			#ui code {
+				background: rgba(255, 255, 255, 0.08);
+				padding: 2px 6px;
+				border-radius: 6px;
+			}
+			#tips {
+				opacity: 0.85;
+			}
+			#fps {
+				margin-top: 6px;
+				opacity: 0.6;
+			}
+			canvas {
+				display: block;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="ui">
+			<div id="tips">ZQSD pour bouger • Molette pour zoomer</div>
+			<div id="fps">...</div> </div
+		><!-- Polyfill pour Firefox/Safari (sécurisé sur tous navigateurs) -->
+		<script
+			async
+			src="https://unpkg.com/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+
+		<!-- Import map : on “remappe” les spécificateurs -->
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+					"three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+				}
+			}
+		</script>
+		<script type="module">
+			// --- Dépendances Three.js (CDN ES Modules) ---
+			import * as THREE from "three";
+			import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+
+			// --- CONFIG JSON (éditable) ---
+			const CONFIG = {
+				planet: {
+					radius: 100,
+					color: 0x914c2b,
+					roughness: 1,
+					metalness: 0,
+				},
+				camera: {
+					fov: 55,
+					near: 0.1,
+					far: 5000,
+					zoomMin: 10,
+					zoomMax: 420,
+					startZoom: 45,
+				},
+				gravity: {
+					G: 30,
+					dampTangent: 0.12,
+					dampNormal: 0.45,
+					maxSpeed: 28,
+				},
+				player: {
+					glb: "Animated Base Character.glb",
+					height: 1.2, // écart à la surface (marge)
+					colliderRadius: 1.05, // rayon de collision
+					scale: 1.0,
+					speed: 62, // accélération dans le plan tangent
+					spawnLatLongDeg: { lat: 15, lon: -40 }, // point de départ (facultatif)
+				},
+				rocks: {
+					count: 600,
+					safeSpawnRadius: 12, // pas de rochers trop près du spawn joueur (distance tangentielle approx)
+					variants: [
+						{
+							glb: "Rock.glb",
+							scaleMin: 0.9,
+							scaleMax: 1.6,
+							baseCollider: 1.35,
+							height: 0.6,
+						},
+						{
+							glb: "Rock Medium.glb",
+							scaleMin: 0.8,
+							scaleMax: 1.4,
+							baseCollider: 1.2,
+							height: 0.5,
+						},
+					],
+				},
+				lighting: { ambient: 0.35, sun: 1.0, sunDir: [0.8, 0.5, 0.3] },
+			};
+
+			// --- Raccourcis ---
+			const R = CONFIG.planet.radius;
+			const G = CONFIG.gravity.G;
+			const DAMP_TANGENT = CONFIG.gravity.dampTangent;
+			const DAMP_NORMAL = CONFIG.gravity.dampNormal;
+			const MAX_SPEED = CONFIG.gravity.maxSpeed;
+
+			// --- Scène ---
+			const scene = new THREE.Scene();
+			scene.background = new THREE.Color(0x050508);
+
+			const renderer = new THREE.WebGLRenderer({ antialias: true });
+			renderer.setSize(innerWidth, innerHeight);
+			renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+			document.body.appendChild(renderer.domElement);
+
+			const camera = new THREE.PerspectiveCamera(
+				CONFIG.camera.fov,
+				innerWidth / innerHeight,
+				CONFIG.camera.near,
+				CONFIG.camera.far
+			);
+
+			// Lumières
+			scene.add(new THREE.AmbientLight(0xffffff, CONFIG.lighting.ambient));
+			const dirLight = new THREE.DirectionalLight(
+				0xffffff,
+				CONFIG.lighting.sun
+			);
+			dirLight.position.set(...CONFIG.lighting.sunDir).multiplyScalar(500);
+			scene.add(dirLight);
+
+			// Planète (Mars réduite)
+			const planetGeo = new THREE.SphereGeometry(R, 128, 64);
+			const planetMat = new THREE.MeshStandardMaterial({
+				color: CONFIG.planet.color,
+				roughness: CONFIG.planet.roughness,
+				metalness: CONFIG.planet.metalness,
+			});
+			const planet = new THREE.Mesh(planetGeo, planetMat);
+			planet.receiveShadow = false;
+			planet.castShadow = false;
+			scene.add(planet);
+
+			// Sky léger (brouillard)
+			scene.fog = new THREE.Fog(0x090a0f, R * 0.6, R * 2.6);
+
+			// --- Entrées clavier ---
+			const keys = Object.create(null);
+			addEventListener("keydown", (e) => (keys[e.code] = true));
+			addEventListener("keyup", (e) => (keys[e.code] = false));
+
+			// Molette (zoom)
+			let targetZoom = CONFIG.camera.startZoom;
+			addEventListener(
+				"wheel",
+				(e) => {
+					targetZoom += Math.sign(e.deltaY) * 8;
+					targetZoom = THREE.MathUtils.clamp(
+						targetZoom,
+						CONFIG.camera.zoomMin,
+						CONFIG.camera.zoomMax
+					);
+				},
+				{ passive: true }
+			);
+
+			// --- Maths util ---
+			const vTmp = new THREE.Vector3();
+			const vTmp2 = new THREE.Vector3();
+			const vTmp3 = new THREE.Vector3();
+			const X = new THREE.Vector3(1, 0, 0);
+
+			function len(v) {
+				return Math.hypot(v.x, v.y, v.z);
+			}
+			function normalize(v) {
+				const l = len(v) || 1;
+				v.x /= l;
+				v.y /= l;
+				v.z /= l;
+				return v;
+			}
+			function dot(a, b) {
+				return a.x * b.x + a.y * b.y + a.z * b.z;
+			}
+			function projectOnPlane(v, n) {
+				const vn = dot(v, n);
+				return vTmp.copy(v).addScaledVector(n, -vn);
+			}
+			function clampLen(v, max) {
+				const l = len(v);
+				return l > max ? vTmp.copy(v).multiplyScalar(max / (l || 1)) : v;
+			}
+
+			// --- Objets logiques ---
+			const player = {
+				pos: new THREE.Vector3(),
+				vel: new THREE.Vector3(),
+				height: CONFIG.player.height,
+				radius: CONFIG.player.colliderRadius,
+				mesh: null,
+			};
+
+			/** Placement de départ par lat/lon (en degrés) */
+			(function setSpawn() {
+				const { lat, lon } = CONFIG.player.spawnLatLongDeg;
+				const la = THREE.MathUtils.degToRad(lat);
+				const lo = THREE.MathUtils.degToRad(lon);
+				const x = Math.cos(la) * Math.cos(lo);
+				const y = Math.sin(la);
+				const z = Math.cos(la) * Math.sin(lo);
+				player.pos.set(x, y, z).setLength(R + player.height);
+			})();
+
+			// --- Charger les GLB ---
+			const loader = new GLTFLoader();
+			const ASSETS = {
+				player: null,
+				rockGeometries: [], // { geo, variantIndex }
+			};
+
+			async function loadGLB(url) {
+				return new Promise((res, rej) =>
+					loader.load(url, (gltf) => res(gltf), undefined, rej)
+				);
+			}
+
+			async function loadAssets() {
+				// Player
+				try {
+					const gltfPlayer = await loadGLB(CONFIG.player.glb);
+					let mesh = null;
+					gltfPlayer.scene.traverse((o) => {
+						if (o.isMesh && !mesh) {
+							mesh = o;
+						}
+					});
+					if (mesh) {
+						const m = mesh.clone();
+						m.scale.setScalar(CONFIG.player.scale);
+						m.frustumCulled = false;
+						scene.add(m);
+						player.mesh = m;
+					} else {
+						// Fallback: capsule simple
+						const body = new THREE.Mesh(
+							new THREE.CapsuleGeometry(0.6, 1.0, 4, 8),
+							new THREE.MeshStandardMaterial({ color: 0xdddddd })
+						);
+						scene.add(body);
+						player.mesh = body;
+					}
+				} catch (e) {
+					console.warn("Player GLB non chargé, fallback capsule", e);
+					const body = new THREE.Mesh(
+						new THREE.CapsuleGeometry(0.6, 1.0, 4, 8),
+						new THREE.MeshStandardMaterial({ color: 0xdddddd })
+					);
+					scene.add(body);
+					player.mesh = body;
+				}
+
+				// Rocks variants -> géométries pour InstancedMesh
+				for (let i = 0; i < CONFIG.rocks.variants.length; i++) {
+					const v = CONFIG.rocks.variants[i];
+					try {
+						const gltf = await loadGLB(v.glb);
+						let g = null;
+						let m = null;
+						gltf.scene.traverse((o) => {
+							if (o.isMesh && !g) {
+								g = o.geometry;
+								m = o.material;
+							}
+						});
+						if (!g) {
+							// fallback géométrie icosa
+							g = new THREE.IcosahedronGeometry(1, 2);
+							m = new THREE.MeshStandardMaterial({
+								color: 0x7b3d22,
+								roughness: 1,
+							});
+						}
+						ASSETS.rockGeometries.push({
+							geo: g,
+							material: m,
+							variantIndex: i,
+						});
+					} catch (e) {
+						console.warn("Rock GLB non chargé, fallback", v.glb, e);
+						ASSETS.rockGeometries.push({
+							geo: new THREE.IcosahedronGeometry(1, 2),
+							material: new THREE.MeshStandardMaterial({
+								color: 0x7b3d22,
+								roughness: 1,
+							}),
+							variantIndex: i,
+						});
+					}
+				}
+			}
+
+			// --- Placement rochers (Fibonacci sphere)
+			function fibonacciPoints(n) {
+				const pts = [];
+				const golden = Math.PI * (3 - Math.sqrt(5));
+				for (let i = 0; i < n; i++) {
+					const y = 1 - (i / (n - 1)) * 2;
+					const r = Math.sqrt(1 - y * y);
+					const theta = i * golden;
+					const x = Math.cos(theta) * r;
+					const z = Math.sin(theta) * r;
+					pts.push(new THREE.Vector3(x, y, z));
+				}
+				return pts;
+			}
+
+			// Données rochers (colliders et rendu instancié)
+			const rocks = []; // { pos, vel, height, radius, variant, scale }
+			const rockInstanced = []; // { mesh: InstancedMesh, amount, variantIndex }
+
+			function spawnRocks() {
+				const N = CONFIG.rocks.count;
+				const pts = fibonacciPoints(N);
+				// Construire InstancedMesh pour chaque variant
+				for (const {
+					geo,
+					material,
+					variantIndex,
+				} of ASSETS.rockGeometries) {
+					const countForVariant = Math.floor(
+						N / ASSETS.rockGeometries.length
+					);
+					const imesh = new THREE.InstancedMesh(
+						geo,
+						material,
+						countForVariant
+					);
+					imesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+					scene.add(imesh);
+					rockInstanced.push({ mesh: imesh, amount: 0, variantIndex });
+				}
+
+				let vCursor = 0;
+				const safeDir = normalize(player.pos.clone());
+
+				for (let i = 0; i < N; i++) {
+					const p = pts[i].clone();
+					// Écarter autour du spawn
+					const dotSafe = dot(p, safeDir); // cos(angle)
+					if (dotSafe > 0.995 && i % 3 === 0) continue; // petit cône vide près du spawn
+
+					// Choisir variant
+					const v =
+						CONFIG.rocks.variants[vCursor % CONFIG.rocks.variants.length];
+					const inst = rockInstanced.find(
+						(e) =>
+							e.variantIndex === vCursor % CONFIG.rocks.variants.length
+					);
+					vCursor++;
+
+					// Échelle et hauteur
+					const scale = THREE.MathUtils.lerp(
+						v.scaleMin,
+						v.scaleMax,
+						Math.random()
+					);
+					const h = v.height * scale;
+
+					// Position finale
+					const pos = p.multiplyScalar(R + h);
+
+					// Collider
+					const rad = v.baseCollider * scale;
+
+					const rock = {
+						pos,
+						vel: new THREE.Vector3(),
+						height: h,
+						radius: rad,
+						variant: inst,
+						scale,
+					};
+					rocks.push(rock);
+
+					// Appliquer dans l'InstancedMesh
+					const m = new THREE.Matrix4();
+					m.compose(
+						pos,
+						new THREE.Quaternion().setFromUnitVectors(
+							new THREE.Vector3(0, 1, 0),
+							normalize(pos.clone())
+						),
+						new THREE.Vector3(scale, scale, scale)
+					);
+					const idx = inst.amount++;
+					inst.mesh.setMatrixAt(idx, m);
+				}
+
+				for (const r of rockInstanced) {
+					r.mesh.instanceMatrix.needsUpdate = true;
+				}
+			}
+
+			// --- Physique maison: gravité centripète + contraintes ---
+			function applyCentripetal(obj, dt) {
+				const desiredR = R + (obj.height || 0);
+				const n = normalize(obj.pos.clone());
+				const toCenter = vTmp.copy(n).multiplyScalar(-1);
+
+				// 1) gravité
+				obj.vel.addScaledVector(toCenter, G * dt);
+
+				// 2) décomposition vitesse
+				const v = obj.vel;
+				const vNmag = dot(v, n);
+				const vN = vTmp.copy(n).multiplyScalar(vNmag);
+				const vT = vTmp2.copy(v).addScaledVector(n, -vNmag);
+
+				// 3) amortissements
+				vT.multiplyScalar(Math.max(0, 1 - DAMP_TANGENT * dt));
+				vN.multiplyScalar(Math.max(0, 1 - DAMP_NORMAL * dt));
+
+				v.copy(vT.add(vN));
+				if (len(v) > MAX_SPEED) v.multiplyScalar(MAX_SPEED / (len(v) || 1));
+
+				// 4) intégration
+				obj.pos.addScaledVector(v, dt);
+
+				// 5) contrainte de rayon
+				const rNow = len(obj.pos) || 1;
+				obj.pos.multiplyScalar(desiredR / rNow);
+
+				// 6) vitesse tangentielle stricte
+				const n2 = normalize(obj.pos.clone());
+				const vn2 = dot(obj.vel, n2);
+				obj.vel.addScaledVector(n2, -vn2);
+			}
+
+			function resolvePlayerRockCollision(player, rock) {
+				const p = player.pos;
+				const r = rock.pos;
+				const nLocal = normalize(p.clone());
+				const delta = vTmp.copy(p).sub(r);
+				const dist = len(delta);
+				const minDist = player.radius + rock.radius;
+				if (dist >= minDist || dist === 0) return;
+
+				const penetration = minDist - dist;
+				let pushDir = projectOnPlane(delta, nLocal);
+				if (len(pushDir) === 0) {
+					pushDir.copy(new THREE.Vector3().crossVectors(nLocal, X));
+					if (len(pushDir) === 0) pushDir.set(0, 1, 0);
+				}
+				normalize(pushDir);
+				p.addScaledVector(pushDir, penetration + 1e-4);
+				p.setLength(R + (player.height || 0));
+
+				const contactN = projectOnPlane(delta, nLocal);
+				if (len(contactN) > 0) {
+					normalize(contactN);
+					const vn = dot(player.vel, contactN);
+					if (vn < 0) player.vel.addScaledVector(contactN, -vn);
+				}
+
+				const vN2 = dot(player.vel, nLocal);
+				player.vel.addScaledVector(nLocal, -vN2);
+			}
+
+			// --- Contrôles joueur (ZQSD) ---
+			function applyInputs(player, dt) {
+				const n = normalize(player.pos.clone());
+				const east = normalize(
+					projectOnPlane(new THREE.Vector3(1, 0, 0), n)
+				);
+				const north = normalize(new THREE.Vector3().crossVectors(n, east));
+				const dir = new THREE.Vector3();
+				if (keys["KeyZ"]) dir.add(north);
+				if (keys["KeyS"]) dir.addScaledVector(north, -1);
+				if (keys["KeyQ"]) dir.addScaledVector(east, -1);
+				if (keys["KeyD"]) dir.add(east);
+				if (len(dir) > 0) {
+					normalize(dir);
+					player.vel.addScaledVector(dir, CONFIG.player.speed * dt);
+				}
+			}
+
+			// --- Caméra top-down ---
+			let currentZoom = CONFIG.camera.startZoom;
+			function updateCamera() {
+				currentZoom = THREE.MathUtils.lerp(currentZoom, targetZoom, 0.15);
+				const n = normalize(player.pos.clone());
+				const target = player.pos;
+				const camPos = vTmp.copy(target).addScaledVector(n, currentZoom);
+				camera.position.lerp(camPos, 0.18);
+				camera.up.lerp(n, 0.25);
+				camera.lookAt(target);
+			}
+
+			// --- Boucle ---
+			const clock = new THREE.Clock();
+			let accum = 0;
+			const dtFixed = 1 / 120; // intégration plus stable
+
+			const fpsEl = document.getElementById("fps");
+			let frames = 0,
+				tAcc = 0;
+
+			function animate() {
+				requestAnimationFrame(animate);
+				let dt = clock.getDelta();
+				dt = Math.min(dt, 1 / 30);
+				accum += dt;
+				while (accum >= dtFixed) {
+					step(dtFixed);
+					accum -= dtFixed;
+				}
+				renderer.render(scene, camera);
+
+				// FPS approx
+				frames++;
+				tAcc += dt;
+				if (tAcc > 0.5) {
+					fpsEl.textContent = `${(frames / tAcc).toFixed(0)} FPS • ${
+						rocks.length
+					} rochers`;
+					frames = 0;
+					tAcc = 0;
+				}
+			}
+
+			function step(dt) {
+				applyInputs(player, dt);
+				applyCentripetal(player, dt);
+				for (const rock of rocks) {
+					/* si dynamiques un jour: applyCentripetal(rock, dt); */
+				}
+				// collisions joueur-rochers
+				for (const rock of rocks) {
+					resolvePlayerRockCollision(player, rock);
+				}
+				// maj meshes
+				if (player.mesh) {
+					player.mesh.position.copy(player.pos);
+					// oriente le mesh selon la tangente (option simple: face à la vitesse)
+					if (len(player.vel) > 0.01) {
+						const n = normalize(player.pos.clone());
+						const forward = normalize(projectOnPlane(player.vel, n));
+						const q = new THREE.Quaternion().setFromUnitVectors(
+							new THREE.Vector3(0, 1, 0),
+							n
+						);
+						const yRot = new THREE.Quaternion().setFromAxisAngle(
+							n,
+							Math.atan2(forward.x, forward.z)
+						);
+						player.mesh.quaternion.multiplyQuaternions(q, yRot);
+					} else {
+						player.mesh.quaternion.setFromUnitVectors(
+							new THREE.Vector3(0, 1, 0),
+							normalize(player.pos.clone())
+						);
+					}
+				}
+				updateCamera();
+			}
+
+			// --- Init ---
+			addEventListener("resize", () => {
+				camera.aspect = innerWidth / innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(innerWidth, innerHeight);
+			});
+
+			(async function init() {
+				await loadAssets();
+				spawnRocks();
+				// placer la caméra initialement
+				targetZoom = CONFIG.camera.startZoom;
+				currentZoom = targetZoom;
+				updateCamera();
+				animate();
+			})();
+		</script>
+	</body>
+</html>
