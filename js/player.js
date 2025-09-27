@@ -173,7 +173,7 @@ export function updatePlayerMesh(dt) {
 		const forward = tangentVel.clone().normalize();
 		lookAtObject.up.copy(normal);
 		lookAtObject.lookAt(forward);
-		player.mesh.quaternion.slerp(lookAtObject.quaternion, 0.2);
+		player.mesh.quaternion.slerp(lookAtObject.quaternion, 0.1);
 	} else {
 		// S'il ne bouge pas, il s'oriente "vers le haut" par rapport à la planète
 		// (ceci est nécessaire pour que le slerp ait une cible de base)
