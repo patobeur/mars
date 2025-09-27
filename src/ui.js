@@ -3,15 +3,8 @@ import { MODES } from "./config.js";
 
 export function initUI(setModeCallback) {
 	const modeName = document.getElementById("modeName");
-	const buttons = [...document.querySelectorAll(".btn")];
 
-	document.getElementById("ui").addEventListener("click", (e) => {
-		if (e.target.matches("button[data-mode]")) {
-			const newMode = e.target.dataset.mode;
-			setModeCallback(newMode);
-		}
-	});
-
+	// Gérer les raccourcis clavier pour changer de mode
 	window.addEventListener("keydown", (e) => {
 		if (e.key === "1") setModeCallback(MODES.TPS);
 		if (e.key === "2") setModeCallback(MODES.FPS);
@@ -23,9 +16,6 @@ export function initUI(setModeCallback) {
 
 	return {
 		updateUI(mode) {
-			buttons.forEach((b) =>
-				b.classList.toggle("active", b.dataset.mode === mode)
-			);
 			const labels = {
 				TPS: "3e personne",
 				FPS: "1re personne",
@@ -34,21 +24,28 @@ export function initUI(setModeCallback) {
 				ORBIT: "Orbit perso",
 				ORBIT_SPHERE: "Orbit sphère",
 			};
-			modeName.textContent = labels[mode] || mode;
+			if (modeName) {
+				modeName.textContent = labels[mode] || mode;
+			}
 		},
 	};
 }
 
 export function setupTests(renderer, scene, camera, planet, controls) {
 	const log = (ok, msg) => {
+		const testsDiv = document.getElementById("tests");
+		if (!testsDiv) return;
 		const div = document.createElement("div");
 		div.textContent = (ok ? "✔︎ " : "✖︎ ") + msg;
 		div.className = ok ? "pass" : "fail";
-		document.getElementById("tests").appendChild(div);
+		testsDiv.appendChild(div);
 	};
 
 	function runTests() {
-		document.getElementById("tests").innerHTML = "";
+		const testsDiv = document.getElementById("tests");
+		if (testsDiv) {
+			testsDiv.innerHTML = "";
+		}
 		try {
 			log(!!THREE, "THREE chargé via import map");
 			log(renderer instanceof THREE.WebGLRenderer, "Renderer initialisé");
@@ -61,5 +58,7 @@ export function setupTests(renderer, scene, camera, planet, controls) {
 		}
 	}
 
-	document.getElementById("runTests").addEventListener("click", runTests);
+	// Le bouton "runTests" n'existe plus, donc l'appel à runTests()
+	// pourrait être déclenché d'une autre manière si nécessaire, par exemple depuis la console.
+	// Pour l'instant, la fonction est conservée mais n'est plus liée à un événement de clic.
 }

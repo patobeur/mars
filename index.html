@@ -6,6 +6,7 @@
 		<title>Mini scène 3D — Caméras sphère (Three.js)</title>
 		<link rel="stylesheet" href="css/style.css" />
 		<link rel="stylesheet" href="src/modules/console/console.css" />
+		<link rel="stylesheet" href="src/modules/navbar/navbar.css" />
 		<script type="importmap">
 			{
 				"imports": {
@@ -16,27 +17,29 @@
 		</script>
 	</head>
 	<body>
-		<div id="ui">
-			<button class="btn" data-mode="TPS">3e personne</button>
-			<button
-				alt="on voit le personnage de l'interieur !! (HS)"
-				title="on voit le personnage de l'interieur !! (HS)"
-				class="btn"
-				data-mode="FPS"
-				>1re personne</button
-			>
-			<button class="btn" data-mode="SAT">Satellite</button>
-			<button class="btn" data-mode="TOP">Top‑down</button>
-			<button
-				title="ça fait n'importe quoi ! (HS)"
-				alt="ça fait n'importe quoi ! (HS)"
-				class="btn"
-				data-mode="ORBIT"
-				>Orbit perso</button
-			>
-			<button class="btn" data-mode="ORBIT_SPHERE">Orbit sphère</button>
-			<button class="btn" id="runTests">Tests</button>
-		</div>
+		<nav class="navbar">
+			<div class="navbar-container">
+				<div class="navbar-brand">
+					<a href="#">Logo</a>
+				</div>
+				<div class="navbar-menu">
+					<ul class="navbar-nav">
+						<li class="nav-item dropdown">
+							<a href="#" class="nav-link dropdown-toggle">Vue</a>
+							<ul class="dropdown-menu" id="view-menu">
+								<!-- Les modes de caméra seront ajoutés ici par JS -->
+							</ul>
+						</li>
+					</ul>
+				</div>
+				<div class="navbar-toggle">
+					<span></span>
+					<span></span>
+					<span></span>
+				</div>
+			</div>
+		</nav>
+
 		<div id="help"> </div>
 		<div id="diag" class="muted">
 			<div
