@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { MODES } from "./config.js";
 
 export function initUI(setModeCallback) {
