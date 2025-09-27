@@ -4,6 +4,7 @@ import { initScene } from "./scene.js";
 import { createCharacter, updateCharacter, tangentBasisAt } from "./character.js";
 import { createControls, setMode as setCameraMode, updateCamera, handleCameraZoom, handleCameraKeyboard } from "./camera.js";
 import { initUI, setupTests } from "./ui.js";
+import Console from "./modules/console/console.js";
 
 // --- Renderer ---
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -11,8 +12,14 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 document.body.appendChild(renderer.domElement);
 
+// --- Console ---
+const consoleContainer = document.getElementById('console');
+Console.init(consoleContainer);
+Console.addMessage("Welcome!");
+
 // --- Scene, Camera, Planet ---
 const { scene, camera, planet } = initScene();
+Console.addMessage("Scene initialized");
 
 // --- Character ---
 const character = createCharacter(scene);
@@ -31,6 +38,7 @@ function setMode(newMode) {
 	currentMode = newMode;
 	setCameraMode(currentMode, controls, camera, character);
 	updateUI(currentMode);
+	Console.addMessage(`Camera mode: ${newMode}`);
 }
 
 // --- Event Listeners ---
