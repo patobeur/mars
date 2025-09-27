@@ -222,6 +222,10 @@
 			const controls = new OrbitControls(camera, renderer.domElement);
 			controls.enabled = false;
 			controls.enableDamping = true;
+			controls.enablePan = false; // évite le pan involontaire au bouton droit
+			controls.enableZoom = true;
+			controls.minDistance = 0.5;
+			controls.maxDistance = 5000;
 			controls.target.set(0, 0, 0);
 
 			scene.add(new THREE.AmbientLight(0xffffff, 0.45));
@@ -229,10 +233,10 @@
 			dir.position.set(8, 10, 6);
 			scene.add(dir);
 
-			const R = 25;
+			const R = 100;
 			const planetGeo = new THREE.SphereGeometry(R, 96, 64);
 			const planetMat = new THREE.MeshStandardMaterial({
-				color: 0x2050d0,
+				color: 0x992205,
 				roughness: 0.9,
 				metalness: 0.0,
 				emissive: 0x000000,
@@ -241,9 +245,9 @@
 			scene.add(planet);
 
 			const atmosphere = new THREE.Mesh(
-				new THREE.SphereGeometry(R * 1.5, 64, 48),
+				new THREE.SphereGeometry(R * 1.03, 64, 48),
 				new THREE.MeshBasicMaterial({
-					color: 0x4ea8ff,
+					color: 0x992205,
 					transparent: true,
 					opacity: 0.07,
 				})
@@ -316,17 +320,37 @@
 				new THREE.SphereGeometry(0.04, 16, 12),
 				new THREE.MeshStandardMaterial({ color: 0xffffff })
 			);
-			eye_gauche.position.x = 0.05;
-			eye_gauche.position.y = 0.2;
-			eye_droit.position.x = -0.05;
-			eye_droit.position.y = 0.2;
 
+			const eye_g_pupille = new THREE.Mesh(
+				new THREE.SphereGeometry(0.03, 16, 12),
+				new THREE.MeshStandardMaterial({ color: 0x000000 })
+			);
+			const eye_d_pupille = new THREE.Mesh(
+				new THREE.SphereGeometry(0.03, 16, 12),
+				new THREE.MeshStandardMaterial({ color: 0x000000 })
+			);
+
+			eye_gauche.add(eye_g);
+			eye_droit.add(eye_d);
 			eye_gauche.add(eye_g);
 			eye_droit.add(eye_d);
 			eyes.add(eye_gauche);
 			eyes.add(eye_droit);
 			charGroup.add(eyes);
 			scene.add(charGroup);
+
+			eye_gauche.position.x = 0.05;
+			eye_gauche.position.y = 0.15;
+			eye_gauche.position.z = 0.1;
+
+			eye_droit.position.x = -0.05;
+			eye_droit.position.y = 0.15;
+			eye_droit.position.z = 0.1;
+
+			eye_g_pupille.position.z = 0.02;
+			eye_d_pupille.position.z = 0.02;
+			eye_gauche.add(eye_g_pupille);
+			eye_droit.add(eye_d_pupille);
 
 			let charPos = new THREE.Vector3(R, 0, 0);
 			let charForward = new THREE.Vector3();
@@ -389,12 +413,46 @@
 					ORBIT_SPHERE: "Orbit sphère",
 				};
 				modeName.textContent = labels[m] || m;
+
 				controls.enabled =
 					mode === MODES.ORBIT || mode === MODES.ORBIT_SPHERE;
 				if (mode === MODES.ORBIT) {
+					controls.enablePan = false; // lock le centre sur le perso
+					controls.minDistance = 0.8;
+					controls.maxDistance = 8;
 					controls.target.copy(charPos);
+					// Repositionner proprement la caméra autour du perso
+					const { n } = tangentBasisAt(charPos);
+					const back = charForward
+						.clone()
+						.multiplyScalar(-2.5)
+						.addScaledVector(n, 1.0);
+					camera.position.copy(charPos).add(back);
+					camera.lookAt(charPos);
 				} else if (mode === MODES.ORBIT_SPHERE) {
+					controls.enablePan = false; // on évite l'éloignement via pan
+					controls.minDistance = R * 1.1;
+					controls.maxDistance = R * 5.0;
 					controls.target.set(0, 0, 0);
+					// Si la distance courante est hors bornes, on recale la caméra
+					let d = camera.position.length();
+					if (
+						!Number.isFinite(d) ||
+						d < controls.minDistance ||
+						d > controls.maxDistance
+					) {
+						const dir = camera.position.clone().normalize();
+						if (dir.lengthSq() < 1e-6) dir.set(1, 0, 0);
+						const desired = THREE.MathUtils.clamp(
+							R * 2.0,
+							controls.minDistance * 1.05,
+							controls.maxDistance * 0.95
+						);
+						camera.position.copy(dir.multiplyScalar(desired));
+						camera.lookAt(0, 0, 0);
+					}
+				} else {
+					controls.enabled = false;
 				}
 			}
 			setMode(MODES.TPS);
