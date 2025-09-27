@@ -95,10 +95,22 @@
 	<body>
 		<div id="ui">
 			<button class="btn" data-mode="TPS">3e personne</button>
-			<button class="btn" data-mode="FPS">1re personne</button>
+			<button
+				alt="on voit le personnage de l'interieur !! (HS)"
+				title="on voit le personnage de l'interieur !! (HS)"
+				class="btn"
+				data-mode="FPS"
+				>1re personne</button
+			>
 			<button class="btn" data-mode="SAT">Satellite</button>
 			<button class="btn" data-mode="TOP">Top‑down</button>
-			<button class="btn" data-mode="ORBIT">Orbit perso</button>
+			<button
+				title="ça fait n'importe quoi ! (HS)"
+				alt="ça fait n'importe quoi ! (HS)"
+				class="btn"
+				data-mode="ORBIT"
+				>Orbit perso</button
+			>
 			<button class="btn" data-mode="ORBIT_SPHERE">Orbit sphère</button>
 			<button class="btn" id="runTests">Tests</button>
 		</div>
@@ -120,95 +132,30 @@
 					>Orbit sphère : souris pour orbiter / zoom (autour du centre de
 					la sphère)</li
 				>
+				<li>Satellite : molette = zoom</li>
+				<li>Satellite : + / − = zoom +/- (clavier)</li>
 				<li>Top‑down : molette = zoom</li>
 				<li>Top‑down : + / − = zoom +/- (clavier)</li>
 			</ul>
-			<div id="tests"> </div
-		></div>
+			<div id="tests"></div>
+		</div>
 
 		<script type="module">
 			import * as THREE from "three";
 			import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
+			// --- Textures Mars (optionnelles) ---
 			const loader = new THREE.TextureLoader();
 			const color = loader.load("textures/mars/mars_8k_color.jpg");
 			const bump = loader.load("textures/mars/mars_8k_bump.jpg");
 			const normal = loader.load("textures/mars/mars_1k_normal.jpg");
 
+			// --- Config (placeholder pour futurs assets) ---
 			const config = {
-				player: {
-					glb: "assets/Animated_Base_Character.glb",
-					height: 0, // écart à la surface (marge)
-					colliderRadius: 1, // rayon de collision
-					scale: 1.0,
-					jumpStrength: 15, // impulsion verticale pour le saut
-					spawnLatLongDeg: { lat: 15, lon: -40 }, // point de départ (facultatif)
-					animations: [
-						"Rig|Crouch_Fwd_Loop",
-						"Rig|Crouch_Idle_Loop",
-						"Rig|Dance_Loop",
-						"Rig|Death01",
-						"Rig|Driving_Loop",
-						"Rig|Fixing_Kneeling",
-						"Rig|Hit_Chest",
-						"Rig|Hit_Head",
-						"Rig|Idle_Loop",
-						"Rig|Idle_Talking_Loop",
-						"Rig|Idle_Torch_Loop",
-						"Rig|Interact",
-						"Rig|Jog_Fwd_Loop",
-						"Rig|Jump_Land",
-						"Rig|Jump_Loop",
-						"Rig|Jump_Start",
-						"Rig|Pickup_Table",
-						"Rig|Pistol_Aim_Down",
-						"Rig|Pistol_Aim_Neutral",
-						"Rig|Pistol_Idle_Loop",
-						"Rig|Pistol_Reload",
-						"Rig|Pistol_Shoot",
-						"Rig|Punch_Cross",
-						"Rig|Punch_Enter",
-						"Rig|Punch_Jab",
-						"Rig|Push_Loop",
-						"Rig|Roll",
-						"Rig|Roll_RM",
-						"Rig|Sitting_Enter",
-						"Rig|Sitting_Exit",
-						"Rig|Sitting_Idle_Loop",
-						"Rig|Sitting_Talking_Loop",
-						"Rig|Spell_Simple_Enter",
-						"Rig|Spell_Simple_Exit",
-						"Rig|Spell_Simple_Idle_Loop",
-						"Rig|Spell_Simple_Shoot",
-						"Rig|Sprint_Fwd",
-						"Rig|Swim_Fwd_Loop",
-						"Rig|Swim_Idle_Loop",
-						"Rig|Sword_Attack",
-						"Rig|Sword_Attack_RM",
-						"Rig|Sword_Idle",
-						"Rig|Walk_Formal_Loop",
-						"Rig|Walk_Loop",
-					],
-				},
-				rocks: {
-					count: 100,
-					safeSpawnRadius: 12, // pas de rochers trop près du spawn joueur (distance tangentielle approx)
-					variants: [
-						{
-							glb: "assets/Rock.glb",
-							scaleMin: 0.9,
-							scaleMax: 1.6,
-							height: 0,
-						},
-						{
-							glb: "assets/Rock Medium.glb",
-							scaleMin: 0.8,
-							scaleMax: 1.4,
-							height: 0,
-						},
-					],
-				},
+				player: { glb: "assets/Animated_Base_Character.glb" },
 			};
+
+			// --- Renderer / Scene / Camera ---
 			const renderer = new THREE.WebGLRenderer({ antialias: true });
 			renderer.setSize(window.innerWidth, window.innerHeight);
 			renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -221,7 +168,7 @@
 				60,
 				window.innerWidth / window.innerHeight,
 				0.05,
-				1000
+				20000
 			);
 			camera.position.set(0, 6, 10);
 
@@ -239,17 +186,17 @@
 			dir.position.set(8, 10, 6);
 			scene.add(dir);
 
+			// --- Planète ---
 			const R = 50;
 			const marsMaterial = new THREE.MeshStandardMaterial({
 				map: color,
 				bumpMap: bump,
 				bumpScale: 0.1,
-				normalMap: color,
+				normalMap: normal,
 				normalScale: new THREE.Vector2(1, 1),
 				roughness: 1,
 			});
 			const marsGeometry = new THREE.SphereGeometry(R, 64, 64);
-
 			const planet = new THREE.Mesh(marsGeometry, marsMaterial);
 			scene.add(planet);
 
@@ -263,7 +210,7 @@
 			);
 			scene.add(atmosphere);
 
-			// Cubes jaunes fixes
+			// --- Repères visuels surface ---
 			const cubeMat = new THREE.MeshStandardMaterial({ color: 0xffff00 });
 			const cubeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
 			for (let i = 0; i < 40; i++) {
@@ -308,7 +255,7 @@
 			);
 			scene.add(stars);
 
-			// Personnage
+			// --- Personnage simple (boule + yeux) ---
 			const charGroup = new THREE.Group();
 			charGroup.add(
 				new THREE.Mesh(
@@ -316,11 +263,9 @@
 					new THREE.MeshStandardMaterial({ color: 0xffcc66 })
 				)
 			);
-
 			const eyes = new THREE.Group();
 			const eye_gauche = new THREE.Group();
 			const eye_droit = new THREE.Group();
-
 			const eye_g = new THREE.Mesh(
 				new THREE.SphereGeometry(0.04, 16, 12),
 				new THREE.MeshStandardMaterial({ color: 0xffffff })
@@ -329,7 +274,6 @@
 				new THREE.SphereGeometry(0.04, 16, 12),
 				new THREE.MeshStandardMaterial({ color: 0xffffff })
 			);
-
 			const eye_g_pupille = new THREE.Mesh(
 				new THREE.SphereGeometry(0.03, 16, 12),
 				new THREE.MeshStandardMaterial({ color: 0x000000 })
@@ -338,44 +282,33 @@
 				new THREE.SphereGeometry(0.03, 16, 12),
 				new THREE.MeshStandardMaterial({ color: 0x000000 })
 			);
-
-			eye_gauche.add(eye_g);
-			eye_droit.add(eye_d);
 			eye_gauche.add(eye_g);
 			eye_droit.add(eye_d);
 			eyes.add(eye_gauche);
 			eyes.add(eye_droit);
 			charGroup.add(eyes);
 			scene.add(charGroup);
-
-			eye_gauche.position.x = 0.05;
-			eye_gauche.position.y = 0.15;
-			eye_gauche.position.z = 0.1;
-
-			eye_droit.position.x = -0.05;
-			eye_droit.position.y = 0.15;
-			eye_droit.position.z = 0.1;
-
+			eye_gauche.position.set(0.05, 0.15, 0.1);
+			eye_droit.position.set(-0.05, 0.15, 0.1);
 			eye_g_pupille.position.z = 0.02;
 			eye_d_pupille.position.z = 0.02;
 			eye_gauche.add(eye_g_pupille);
 			eye_droit.add(eye_d_pupille);
 
+			// --- Déplacement sur sphère ---
 			let charPos = new THREE.Vector3(R, 0, 0);
 			let charForward = new THREE.Vector3();
 			const speed = 0.018,
 				rotSpeed = 0.035;
-
 			function initForwardAt(pos) {
 				const n = pos.clone().normalize();
 				charForward
 					.set(0, 0, 1)
 					.addScaledVector(n, -n.dot(new THREE.Vector3(0, 0, 1)));
-				if (charForward.lengthSq() < 1e-8) {
+				if (charForward.lengthSq() < 1e-8)
 					charForward
 						.set(1, 0, 0)
 						.addScaledVector(n, -n.dot(new THREE.Vector3(1, 0, 0)));
-				}
 				charForward.normalize();
 			}
 			initForwardAt(charPos);
@@ -400,6 +333,10 @@
 			let topDownHeight = 3.2;
 			const TOP_MIN = 1.2,
 				TOP_MAX = 10;
+			// Satellite : distance caméra variable
+			let satDistance = R * 3.2;
+			const SAT_MIN = R * 1.2,
+				SAT_MAX = R * 10;
 
 			const modeName = document.getElementById("modeName");
 			const buttons = [...document.querySelectorAll(".btn")];
@@ -422,15 +359,13 @@
 					ORBIT_SPHERE: "Orbit sphère",
 				};
 				modeName.textContent = labels[m] || m;
-
 				controls.enabled =
 					mode === MODES.ORBIT || mode === MODES.ORBIT_SPHERE;
 				if (mode === MODES.ORBIT) {
-					controls.enablePan = false; // lock le centre sur le perso
+					controls.enablePan = false;
 					controls.minDistance = 0.8;
 					controls.maxDistance = 8;
 					controls.target.copy(charPos);
-					// Repositionner proprement la caméra autour du perso
 					const { n } = tangentBasisAt(charPos);
 					const back = charForward
 						.clone()
@@ -439,11 +374,10 @@
 					camera.position.copy(charPos).add(back);
 					camera.lookAt(charPos);
 				} else if (mode === MODES.ORBIT_SPHERE) {
-					controls.enablePan = false; // on évite l'éloignement via pan
+					controls.enablePan = false;
 					controls.minDistance = R * 1.1;
 					controls.maxDistance = R * 5.0;
 					controls.target.set(0, 0, 0);
-					// Si la distance courante est hors bornes, on recale la caméra
 					let d = camera.position.length();
 					if (
 						!Number.isFinite(d) ||
@@ -513,7 +447,7 @@
 					const camPos = charPos
 						.clone()
 						.normalize()
-						.multiplyScalar(R * 3.2);
+						.multiplyScalar(satDistance);
 					camera.position.lerp(camPos, 0.2);
 					camera.up.set(0, 1, 0);
 					camera.lookAt(charPos);
@@ -545,29 +479,43 @@
 				renderer.setSize(window.innerWidth, window.innerHeight);
 			});
 
-			// Zoom molette Top-down
+			// --- Zoom molette : Top-down & Satellite ---
 			window.addEventListener(
 				"wheel",
 				(e) => {
-					if (mode !== MODES.TOP) return;
+					if (mode !== MODES.TOP && mode !== MODES.SAT) return;
 					e.preventDefault();
 					const factor = Math.exp(e.deltaY * 0.001);
-					topDownHeight = THREE.MathUtils.clamp(
-						topDownHeight * factor,
-						TOP_MIN,
-						TOP_MAX
-					);
+					if (mode === MODES.TOP) {
+						topDownHeight = THREE.MathUtils.clamp(
+							topDownHeight * factor,
+							TOP_MIN,
+							TOP_MAX
+						);
+					} else if (mode === MODES.SAT) {
+						satDistance = THREE.MathUtils.clamp(
+							satDistance * factor,
+							SAT_MIN,
+							SAT_MAX
+						);
+					}
 				},
 				{ passive: false }
 			);
 
-			// Zoom clavier Top-down
+			// --- Clavier : Top-down & Satellite (+ modes) ---
 			window.addEventListener("keydown", (e) => {
 				if (mode === MODES.TOP) {
 					if (e.key === "+" || e.key === "=")
 						topDownHeight = Math.max(TOP_MIN, topDownHeight * 0.9);
 					if (e.key === "-")
 						topDownHeight = Math.min(TOP_MAX, topDownHeight * 1.1);
+				}
+				if (mode === MODES.SAT) {
+					if (e.key === "+" || e.key === "=")
+						satDistance = Math.max(SAT_MIN, satDistance * 0.9);
+					if (e.key === "-")
+						satDistance = Math.min(SAT_MAX, satDistance * 1.1);
 				}
 				if (e.key === "1") setMode(MODES.TPS);
 				if (e.key === "2") setMode(MODES.FPS);
@@ -577,6 +525,7 @@
 				if (e.key === "6") setMode(MODES.ORBIT_SPHERE);
 			});
 
+			// --- Tests ---
 			const log = (ok, msg) => {
 				console.log((ok ? "✔︎ " : "✖︎ ") + msg);
 			};
@@ -592,6 +541,26 @@
 					log(
 						planet.geometry.parameters.radius === R,
 						"Planète rayon R correct"
+					);
+					// Nouveaux tests
+					log(
+						typeof satDistance === "number" &&
+							satDistance >= R * 1.2 &&
+							satDistance <= R * 10,
+						"satDistance initial dans les bornes"
+					);
+					const td0 = topDownHeight;
+					const td1 = THREE.MathUtils.clamp(td0 * 0.5, TOP_MIN, TOP_MAX);
+					log(td1 >= TOP_MIN && td1 <= TOP_MAX, "Clamp Top-down valide");
+					setMode(MODES.ORBIT_SPHERE);
+					log(
+						controls.enabled && controls.minDistance === R * 1.1,
+						"Orbit sphère: contrôles actifs et bornes OK"
+					);
+					setMode(MODES.ORBIT);
+					log(
+						controls.enabled && controls.maxDistance === 8,
+						"Orbit perso: bornes OK"
 					);
 				} catch (e) {
 					console.log("Tests interrompus: " + (e?.message || e));
