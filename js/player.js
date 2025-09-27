@@ -3,6 +3,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { CONFIG } from "./config.js";
 import { keys } from "./controls.js";
 import { scene, planet } from "./world.js";
+import { camera } from "./camera.js";
 
 // --- Objet joueur ---
 export const player = {
@@ -21,6 +22,7 @@ export const player = {
 // --- Vecteurs et objets temporaires ---
 const vTmp = new THREE.Vector3();
 const vTmp2 = new THREE.Vector3();
+const vTmp3 = new THREE.Vector3();
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const X_AXIS = new THREE.Vector3(1, 0, 0);
 const lookAtObject = new THREE.Object3D(); // Pour le calcul de l'orientation
@@ -117,14 +119,21 @@ export function applyPlayerInputs(dt) {
 		player.vel.addScaledVector(normal, CONFIG.player.jumpStrength);
 	}
 
-	const east = projectOnPlane(X_AXIS, normal, vTmp).normalize();
-	const north = vTmp2.copy(east).cross(normal);
+	// Contrôles relatifs à la caméra
+	// On dérive les directions droite/avant du repère de la caméra.
+	const camRight = vTmp.setFromMatrixColumn(camera.matrixWorld, 0);
+
+	// On projette le vecteur "droite" de la caméra sur le plan tangent du joueur
+	const right = projectOnPlane(camRight, normal, vTmp2).normalize();
+
+	// Le vecteur "avant" est perpendiculaire à la normale et à la droite.
+	const forward = vTmp3.crossVectors(right, normal);
 
 	const moveDirection = new THREE.Vector3();
-	if (keys["KeyW"]) moveDirection.add(north);
-	if (keys["KeyS"]) moveDirection.sub(north);
-	if (keys["KeyA"]) moveDirection.add(east);
-	if (keys["KeyD"]) moveDirection.sub(east);
+	if (keys["KeyW"]) moveDirection.add(forward);
+	if (keys["KeyS"]) moveDirection.sub(forward);
+	if (keys["KeyA"]) moveDirection.sub(right);
+	if (keys["KeyD"]) moveDirection.add(right);
 
 	if (moveDirection.lengthSq() > 0) {
 		moveDirection.normalize();
@@ -160,14 +169,14 @@ export function updatePlayerMesh(dt) {
 
 	// --- Orientation ---
 	if (tangentVel.lengthSq() > 0.01) {
+		// Le personnage s'oriente dans la direction de son mouvement
 		const forward = tangentVel.clone().normalize();
-
-		// Correction: Utiliser un Object3D pour calculer la rotation cible
 		lookAtObject.up.copy(normal);
 		lookAtObject.lookAt(forward);
-
 		player.mesh.quaternion.slerp(lookAtObject.quaternion, 0.2);
 	} else {
+		// S'il ne bouge pas, il s'oriente "vers le haut" par rapport à la planète
+		// (ceci est nécessaire pour que le slerp ait une cible de base)
 		const defaultQuaternion = new THREE.Quaternion().setFromUnitVectors(
 			Y_AXIS,
 			normal
