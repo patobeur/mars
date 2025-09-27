@@ -27,12 +27,7 @@
 						<li class="nav-item dropdown">
 							<a href="#" class="nav-link dropdown-toggle">Vue</a>
 							<ul class="dropdown-menu" id="view-menu">
-								<li class="dropdown-submenu">
-									<a href="#" class="dropdown-item">Test</a>
-									<ul class="dropdown-menu">
-										<!-- Les éléments de test seront ajoutés ici -->
-									</ul>
-								</li>
+								<!-- Les modes de caméra seront ajoutés ici par JS -->
 							</ul>
 						</li>
 					</ul>
@@ -44,29 +39,9 @@
 				</div>
 			</div>
 		</nav>
-		<div id="ui" data-name="UI Buttons">
-			<button class="btn" data-mode="TPS">3e personne</button>
-			<button
-				alt="on voit le personnage de l'interieur !! (HS)"
-				title="on voit le personnage de l'interieur !! (HS)"
-				class="btn"
-				data-mode="FPS"
-				>1re personne</button
-			>
-			<button class="btn" data-mode="SAT">Satellite</button>
-			<button class="btn" data-mode="TOP">Top‑down</button>
-			<button
-				title="ça fait n'importe quoi ! (HS)"
-				alt="ça fait n'importe quoi ! (HS)"
-				class="btn"
-				data-mode="ORBIT"
-				>Orbit perso</button
-			>
-			<button class="btn" data-mode="ORBIT_SPHERE">Orbit sphère</button>
-			<button class="btn" id="runTests">Tests</button>
-		</div>
-		<div id="help" data-name="Help"> </div>
-		<div id="diag" class="muted" data-name="Diagnostics">
+
+		<div id="help"> </div>
+		<div id="diag" class="muted">
 			<div
 				><span id="modeLabel">Mode:</span>
 				<span id="modeName">3e personne</span></div
@@ -88,10 +63,10 @@
 				<li>Top‑down : molette = zoom</li>
 				<li>Top‑down : + / − = zoom +/- (clavier)</li>
 			</ul>
-			<div id="tests" data-name="Test Panel"></div>
+			<div id="tests"></div>
 		</div>
 
-		<div id="console" data-name="Console"></div>
+		<div id="console"></div>
 		<script type="module" src="src/main.js"></script>
 	</body>
 </html>

@@ -1,6 +1,17 @@
-import { getUIDivs } from '../../ui.js';
+import { MODES } from '../../config.js';
 
-function initializeNavbar() {
+const modeLabels = {
+    [MODES.TPS]: "3e personne",
+    [MODES.FPS]: "1re personne",
+    [MODES.SAT]: "Satellite",
+    [MODES.TOP]: "Top-down",
+    [MODES.ORBIT]: "Orbit perso",
+    [MODES.ORBIT_SPHERE]: "Orbit sphère",
+};
+
+let menuItems = [];
+
+export function initNavbar(setModeCallback) {
     const navbarToggle = document.querySelector('.navbar-toggle');
     const navbarMenu = document.querySelector('.navbar-menu');
     const viewMenu = document.getElementById('view-menu');
@@ -14,44 +25,40 @@ function initializeNavbar() {
 
     // Remplir le menu "Vue"
     if (viewMenu) {
-        const uiDivs = getUIDivs();
-        const testSubMenuContainer = viewMenu.querySelector('.dropdown-submenu .dropdown-menu');
-        const testSubMenuLi = viewMenu.querySelector('.dropdown-submenu');
+        viewMenu.innerHTML = ''; // Vider le contenu existant
+        menuItems = []; // Réinitialiser le tableau
 
-        if (testSubMenuContainer && testSubMenuLi) {
-            // Vider les anciens éléments pour éviter les doublons
-            testSubMenuContainer.innerHTML = '';
-            const existingItems = Array.from(viewMenu.children).filter(li => !li.classList.contains('dropdown-submenu'));
-            existingItems.forEach(item => item.remove());
+        for (const modeKey in MODES) {
+            const modeValue = MODES[modeKey];
+            const label = modeLabels[modeValue] || modeValue;
 
-            uiDivs.forEach(div => {
-                const listItem = document.createElement('li');
-                const link = document.createElement('a');
-                link.href = `#${div.id}`;
-                link.textContent = div.dataset.name || div.id;
-                link.classList.add('dropdown-item');
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const targetElement = document.getElementById(div.id);
-                    if (targetElement) {
-                        const isHidden = targetElement.style.display === 'none';
-                        targetElement.style.display = isHidden ? '' : 'none';
-                    }
-                });
-                listItem.appendChild(link);
+            const listItem = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = '#';
+            link.textContent = label;
+            link.dataset.mode = modeValue;
+            link.classList.add('dropdown-item');
 
-                if (div.id.toLowerCase().includes('test')) {
-                    testSubMenuContainer.appendChild(listItem);
-                } else {
-                    // Ajouter l'élément au menu principal
-                    viewMenu.appendChild(listItem);
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                setModeCallback(modeValue);
+                // Sur mobile, fermer le menu après la sélection
+                if (navbarMenu.classList.contains('active')) {
+                    navbarMenu.classList.remove('active');
                 }
             });
 
-            // S'assurer que le sous-menu est le dernier élément
-            viewMenu.appendChild(testSubMenuLi);
+            listItem.appendChild(link);
+            viewMenu.appendChild(listItem);
+            menuItems.push(link);
         }
     }
-}
 
-initializeNavbar();
+    return {
+        updateNavbar(currentMode) {
+            menuItems.forEach(item => {
+                item.classList.toggle('active', item.dataset.mode === currentMode);
+            });
+        }
+    };
+}

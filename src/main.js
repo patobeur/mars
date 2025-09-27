@@ -5,7 +5,7 @@ import { createCharacter, updateCharacter, tangentBasisAt } from "./character.js
 import { createControls, setMode as setCameraMode, updateCamera, handleCameraZoom, handleCameraKeyboard } from "./camera.js";
 import { initUI, setupTests } from "./ui.js";
 import Console from "./modules/console/console.js";
-import "./modules/navbar/navbar.js"; // Import navbar logic
+import { initNavbar } from "./modules/navbar/navbar.js";
 
 // --- Renderer ---
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -32,6 +32,7 @@ const controls = createControls(camera, renderer);
 // --- UI & State ---
 let currentMode = MODES.TPS;
 const { updateUI } = initUI(setMode);
+const { updateNavbar } = initNavbar(setMode);
 setMode(currentMode);
 
 // --- Main State Management ---
@@ -39,6 +40,7 @@ function setMode(newMode) {
 	currentMode = newMode;
 	setCameraMode(currentMode, controls, camera, character);
 	updateUI(currentMode);
+    updateNavbar(currentMode);
 	Console.addMessage(`Camera mode: ${newMode}`);
 }
 
