@@ -128,6 +128,21 @@ export function applyPlayerInputs(dt) {
 	if (moveDirection.lengthSq() > 0) {
 		moveDirection.normalize();
 		player.vel.addScaledVector(moveDirection, CONFIG.player.speed * dt);
+	} else if (player.isGrounded) {
+		// Freinage au sol
+		const vT = projectOnPlane(player.vel, normal, vTmp);
+		const speedT = vT.length();
+		if (speedT > 0.01) {
+			const friction = CONFIG.player.groundFriction;
+			const speedDrop = friction * dt;
+			const newSpeed = Math.max(0, speedT - speedDrop);
+			vT.setLength(newSpeed);
+
+			// Recomposer la vélocité
+			const vNmag = player.vel.dot(normal);
+			const vN = vTmp2.copy(normal).multiplyScalar(vNmag);
+			player.vel.copy(vT).add(vN);
+		}
 	}
 }
 
