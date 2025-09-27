@@ -129,6 +129,12 @@
 		<script type="module">
 			import * as THREE from "three";
 			import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+			const loader = new THREE.TextureLoader();
+			const color = loader.load("textures/mars/mars_8k_color.jpg");
+			const bump = loader.load("textures/mars/mars_8k_bump.jpg");
+			const normal = loader.load("textures/mars/mars_1k_normal.jpg");
+
 			const config = {
 				player: {
 					glb: "assets/Animated_Base_Character.glb",
@@ -233,15 +239,18 @@
 			dir.position.set(8, 10, 6);
 			scene.add(dir);
 
-			const R = 100;
-			const planetGeo = new THREE.SphereGeometry(R, 96, 64);
-			const planetMat = new THREE.MeshStandardMaterial({
-				color: 0x992205,
-				roughness: 0.9,
-				metalness: 0.0,
-				emissive: 0x000000,
+			const R = 50;
+			const marsMaterial = new THREE.MeshStandardMaterial({
+				map: color,
+				bumpMap: bump,
+				bumpScale: 0.1,
+				normalMap: color,
+				normalScale: new THREE.Vector2(1, 1),
+				roughness: 1,
 			});
-			const planet = new THREE.Mesh(planetGeo, planetMat);
+			const marsGeometry = new THREE.SphereGeometry(R, 64, 64);
+
+			const planet = new THREE.Mesh(marsGeometry, marsMaterial);
 			scene.add(planet);
 
 			const atmosphere = new THREE.Mesh(
