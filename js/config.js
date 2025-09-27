@@ -24,7 +24,7 @@ export const CONFIG = {
 		height: 1.2, // écart à la surface (marge)
 		colliderRadius: 1.05, // rayon de collision
 		scale: 1.0,
-		speed: 62, // accélération dans le plan tangent
+		speed: 32, // accélération dans le plan tangent
 		jumpStrength: 15, // impulsion verticale pour le saut
 		spawnLatLongDeg: { lat: 15, lon: -40 }, // point de départ (facultatif)
 		animations: [
@@ -75,7 +75,7 @@ export const CONFIG = {
 		],
 	},
 	rocks: {
-		count: 600,
+		count: 100,
 		safeSpawnRadius: 12, // pas de rochers trop près du spawn joueur (distance tangentielle approx)
 		variants: [
 			{
@@ -83,7 +83,7 @@ export const CONFIG = {
 				scaleMin: 0.9,
 				scaleMax: 1.6,
 				baseCollider: 1.35,
-				height: 0.6,
+				height: 0.1,
 			},
 			{
 				glb: "assets/Rock Medium.glb",
