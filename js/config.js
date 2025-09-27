@@ -17,15 +17,16 @@ export const CONFIG = {
 		G: 30,
 		dampTangent: 0.12,
 		dampNormal: 0.45,
-		maxSpeed: 28,
 	},
 	player: {
 		glb: "assets/Animated_Base_Character.glb",
 		height: 1.2, // écart à la surface (marge)
 		colliderRadius: 1.05, // rayon de collision
 		scale: 1.0,
-		speed: 62, // accélération dans le plan tangent
+		acceleration: 40, // accélération dans le plan tangent
+		maxSpeed: 28, // vitesse maximale
 		jumpStrength: 15, // impulsion verticale pour le saut
+		groundFriction: 35, // friction au sol (freinage)
 		spawnLatLongDeg: { lat: 15, lon: -40 }, // point de départ (facultatif)
 		animations: [
 			"Rig|Crouch_Fwd_Loop",

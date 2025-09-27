@@ -6,7 +6,6 @@ const R = CONFIG.planet.radius;
 const G = CONFIG.gravity.G;
 const DAMP_TANGENT = CONFIG.gravity.dampTangent;
 const DAMP_NORMAL = CONFIG.gravity.dampNormal;
-const MAX_SPEED = CONFIG.gravity.maxSpeed;
 
 // --- Vecteurs temporaires pour éviter les allocations ---
 const vTmp = new THREE.Vector3();
@@ -23,7 +22,7 @@ function projectOnPlane(vector, planeNormal) {
 
 /**
  * Applique la gravité, l'amortissement et la contrainte de rayon.
- * @param {object} obj - L'objet sur lequel appliquer la physique (doit avoir pos, vel, height).
+ * @param {object} obj - L'objet sur lequel appliquer la physique (doit avoir pos, vel, height et optionnellement maxSpeed).
  * @param {number} dt - Delta time.
  */
 export function applyCentripetal(obj, dt) {
@@ -45,9 +44,9 @@ export function applyCentripetal(obj, dt) {
 
     // 4. Recomposition et limitation de la vitesse
     obj.vel.copy(vT.add(vN));
-    if (obj.vel.length() > MAX_SPEED) {
-        obj.vel.setLength(MAX_SPEED);
-    }
+	if (obj.maxSpeed && obj.vel.length() > obj.maxSpeed) {
+		obj.vel.setLength(obj.maxSpeed);
+	}
 
     // 5. Intégration de la position
     obj.pos.addScaledVector(obj.vel, dt);
