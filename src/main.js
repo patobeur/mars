@@ -1,76 +1,84 @@
 import * as THREE from "three";
 import { R, MODES } from "./config.js";
 import { initScene, updateCubes } from "./scene.js";
-import { createCharacter, updateCharacter, tangentBasisAt } from "./character.js";
+import { createRobot, updateRobot, tangentBasisAt } from "./modules/robot/robot.js";
 import { createControls, setMode as setCameraMode, updateCamera, handleCameraZoom, handleCameraKeyboard } from "./camera.js";
 import { initUI, setupTests } from "./ui.js";
 import Console from "./modules/console/console.js";
 import { initNavbar } from "./modules/navbar/navbar.js";
 
-// --- Renderer ---
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-document.body.appendChild(renderer.domElement);
+async function main() {
+    // --- Renderer ---
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
 
-// --- Console ---
-const consoleContainer = document.getElementById('console');
-Console.init(consoleContainer);
-Console.addMessage("Welcome!");
+    // --- Console ---
+    const consoleContainer = document.getElementById('console');
+    Console.init(consoleContainer);
+    Console.addMessage("Welcome!");
 
-// --- Scene, Camera, Planet ---
-const { scene, camera, planet, cubes } = initScene();
-Console.addMessage("Scene initialized");
+    // --- Scene, Camera, Planet ---
+    const { scene, camera, planet, cubes } = initScene();
+    Console.addMessage("Scene initialized");
+    Console.addMessage("Loading robot model...");
 
-// --- Character ---
-const character = createCharacter(scene);
-const { charPos, charForward } = character;
+    // --- Character (loaded asynchronously) ---
+    const character = await createRobot(scene);
+    Console.addMessage("Robot loaded successfully!");
 
-// --- Controls ---
-const controls = createControls(camera, renderer);
+    // --- Controls ---
+    const controls = createControls(camera, renderer);
 
-// --- UI & State ---
-let currentMode = MODES.TPS;
-const { updateUI } = initUI(setMode);
-const { updateNavbar } = initNavbar(setMode);
-setMode(currentMode);
+    // --- UI & State ---
+    let currentMode = MODES.TPS;
+    const { updateUI } = initUI(setMode);
+    const { updateNavbar } = initNavbar(setMode);
 
-// --- Main State Management ---
-function setMode(newMode) {
-	currentMode = newMode;
-	setCameraMode(currentMode, controls, camera, character);
-	updateUI(currentMode);
-    updateNavbar(currentMode);
-	Console.addMessage(`Camera mode: ${newMode}`);
+    // --- Main State Management ---
+    function setMode(newMode) {
+        currentMode = newMode;
+        setCameraMode(currentMode, controls, camera, character);
+        updateUI(currentMode);
+        updateNavbar(currentMode);
+        Console.addMessage(`Camera mode: ${newMode}`);
+    }
+
+    setMode(currentMode); // Set initial mode
+
+    // --- Event Listeners ---
+    const keys = new Set();
+    window.addEventListener("keydown", (e) => keys.add(e.key.toLowerCase()));
+    window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
+
+    window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    window.addEventListener("wheel", (e) => handleCameraZoom(e, currentMode), { passive: false });
+    window.addEventListener("keydown", (e) => handleCameraKeyboard(e, currentMode));
+
+    // --- Tests ---
+    setupTests(renderer, scene, camera, planet, controls);
+
+    // --- Animation Loop ---
+    const clock = new THREE.Clock();
+    function tick() {
+        const dt = clock.getDelta();
+        updateRobot(character, keys, tangentBasisAt, dt);
+        updateCubes(cubes, planet, dt);
+        updateCamera(currentMode, camera, character, controls);
+        renderer.render(scene, camera);
+        requestAnimationFrame(tick);
+    }
+
+    tick(); // Start the animation loop
 }
 
-// --- Event Listeners ---
-const keys = new Set();
-window.addEventListener("keydown", (e) => keys.add(e.key.toLowerCase()));
-window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));
-
-window.addEventListener("resize", () => {
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-	renderer.setSize(window.innerWidth, window.innerHeight);
+main().catch(error => {
+    console.error("Failed to initialize the application:", error);
+    Console.addMessage("Error: Failed to initialize the application. Check console for details.", "error");
 });
-
-window.addEventListener("wheel", (e) => handleCameraZoom(e, currentMode), { passive: false });
-window.addEventListener("keydown", (e) => handleCameraKeyboard(e, currentMode));
-
-// --- Tests ---
-setupTests(renderer, scene, camera, planet, controls);
-
-
-// --- Animation Loop ---
-const clock = new THREE.Clock();
-function tick() {
-	const dt = clock.getDelta();
-	updateCharacter(character, keys, tangentBasisAt, dt);
-	updateCubes(cubes, planet, dt);
-	updateCamera(currentMode, camera, character, controls);
-	renderer.render(scene, camera);
-	requestAnimationFrame(tick);
-}
-
-tick();
