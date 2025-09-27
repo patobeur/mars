@@ -229,7 +229,7 @@
 			dir.position.set(8, 10, 6);
 			scene.add(dir);
 
-			const R = 5;
+			const R = 25;
 			const planetGeo = new THREE.SphereGeometry(R, 96, 64);
 			const planetMat = new THREE.MeshStandardMaterial({
 				color: 0x2050d0,
@@ -241,7 +241,7 @@
 			scene.add(planet);
 
 			const atmosphere = new THREE.Mesh(
-				new THREE.SphereGeometry(R * 1.03, 64, 48),
+				new THREE.SphereGeometry(R * 1.5, 64, 48),
 				new THREE.MeshBasicMaterial({
 					color: 0x4ea8ff,
 					transparent: true,
@@ -267,7 +267,7 @@
 
 			// Poteaux blancs
 			const poleMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-			const poleGeo = new THREE.CylinderGeometry(0.15, 0.15, 2, 16);
+			const poleGeo = new THREE.CylinderGeometry(0.15, 0.15, 20, 16);
 			const northPole = new THREE.Mesh(poleGeo, poleMat);
 			northPole.position.set(0, R + 1, 0);
 			scene.add(northPole);
@@ -303,12 +303,29 @@
 					new THREE.MeshStandardMaterial({ color: 0xffcc66 })
 				)
 			);
-			const arrow = new THREE.Mesh(
-				new THREE.ConeGeometry(0.12, 0.32, 16),
-				new THREE.MeshStandardMaterial({ color: 0xff6666 })
+
+			const eyes = new THREE.Group();
+			const eye_gauche = new THREE.Group();
+			const eye_droit = new THREE.Group();
+
+			const eye_g = new THREE.Mesh(
+				new THREE.SphereGeometry(0.04, 16, 12),
+				new THREE.MeshStandardMaterial({ color: 0xffffff })
 			);
-			arrow.position.y = 0.35;
-			charGroup.add(arrow);
+			const eye_d = new THREE.Mesh(
+				new THREE.SphereGeometry(0.04, 16, 12),
+				new THREE.MeshStandardMaterial({ color: 0xffffff })
+			);
+			eye_gauche.position.x = 0.05;
+			eye_gauche.position.y = 0.2;
+			eye_droit.position.x = -0.05;
+			eye_droit.position.y = 0.2;
+
+			eye_gauche.add(eye_g);
+			eye_droit.add(eye_d);
+			eyes.add(eye_gauche);
+			eyes.add(eye_droit);
+			charGroup.add(eyes);
 			scene.add(charGroup);
 
 			let charPos = new THREE.Vector3(R, 0, 0);
@@ -493,15 +510,10 @@
 				if (e.key === "6") setMode(MODES.ORBIT_SPHERE);
 			});
 
-			const testsEl = document.getElementById("tests");
 			const log = (ok, msg) => {
-				const p = document.createElement("div");
-				p.className = ok ? "pass" : "fail";
-				p.textContent = (ok ? "✔︎ " : "✖︎ ") + msg;
-				testsEl.appendChild(p);
+				console.log((ok ? "✔︎ " : "✖︎ ") + msg);
 			};
 			function runTests() {
-				testsEl.innerHTML = "";
 				try {
 					log(!!THREE, "THREE chargé via import map");
 					log(
@@ -515,10 +527,7 @@
 						"Planète rayon R correct"
 					);
 				} catch (e) {
-					const p = document.createElement("div");
-					p.className = "fail";
-					p.textContent = "Tests interrompus: " + (e?.message || e);
-					testsEl.appendChild(p);
+					console.log("Tests interrompus: " + (e?.message || e));
 				}
 			}
 			document
