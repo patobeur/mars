@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { R } from "./config.js";
+import { MARS_GRAVITY } from "./modules/gravity/mars.js";
 
 export function createCharacter(scene) {
 	const charGroup = new THREE.Group();
@@ -41,7 +42,9 @@ export function createCharacter(scene) {
 	eye_gauche.add(eye_g_pupille);
 	eye_droit.add(eye_d_pupille);
 
-	let charPos = new THREE.Vector3(R, 0, 0);
+	let charPos = new THREE.Vector3(R + 2.0, 0, 0); // Start 2m above ground
+	let charVelocity = new THREE.Vector3();
+	let charState = { onGround: false };
 	let charForward = new THREE.Vector3();
 	const speed = 0.018,
 		rotSpeed = 0.035;
@@ -59,22 +62,52 @@ export function createCharacter(scene) {
 	}
 	initForwardAt(charPos);
 
-	return { charGroup, charPos, charForward, speed, rotSpeed };
+	return { charGroup, charPos, charForward, speed, rotSpeed, charVelocity, charState };
 }
 
-export function updateCharacter(
-	character,
-	keys,
-	tangentBasisAt
-) {
-	const { charPos, charForward, speed, rotSpeed, charGroup } = character;
-	const n0 = charPos.clone().normalize();
-	if (keys.has("q")) charForward.applyAxisAngle(n0, +rotSpeed);
-	if (keys.has("d")) charForward.applyAxisAngle(n0, -rotSpeed);
-	if (keys.has("z")) charPos.addScaledVector(charForward, speed);
-	if (keys.has("s")) charPos.addScaledVector(charForward, -speed);
+export function updateCharacter(character, keys, tangentBasisAt, dt) {
+	const { charPos, charForward, speed, rotSpeed, charGroup, charVelocity, charState } = character;
 
-	charPos.normalize().multiplyScalar(R);
+	// Gravity
+	const gravityDirection = charPos.clone().normalize().multiplyScalar(MARS_GRAVITY);
+	charVelocity.addScaledVector(gravityDirection, dt);
+
+	// Update position with velocity
+	charPos.addScaledVector(charVelocity, dt);
+
+	// Ground collision and state update
+	const distanceToCenter = charPos.length();
+	if (distanceToCenter <= R) {
+		charPos.normalize().multiplyScalar(R);
+		// If falling, stop vertical velocity
+		if (charVelocity.dot(charPos.clone().normalize()) < 0) {
+			charVelocity.set(0, 0, 0);
+		}
+		charState.onGround = true;
+	} else {
+		charState.onGround = false;
+	}
+
+	const n0 = charPos.clone().normalize();
+	if (charState.onGround) {
+		// Rotation
+		if (keys.has("q")) charForward.applyAxisAngle(n0, +rotSpeed);
+		if (keys.has("d")) charForward.applyAxisAngle(n0, -rotSpeed);
+
+        // Movement
+		if (keys.has("z")) charPos.addScaledVector(charForward, speed);
+		if (keys.has("s")) charPos.addScaledVector(charForward, -speed);
+
+        // After moving on ground, clamp to surface
+        charPos.normalize().multiplyScalar(R);
+
+		// Jump
+		if (keys.has(" ")) {
+			charVelocity.addScaledVector(n0, 3.0); // Jump velocity
+			charState.onGround = false;
+		}
+	}
+
 	const n1 = charPos.clone().normalize();
 	const q = new THREE.Quaternion().setFromUnitVectors(n0, n1);
 	charForward.applyQuaternion(q);
