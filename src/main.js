@@ -5,6 +5,7 @@ import { createCharacter, updateCharacter, tangentBasisAt } from "./character.js
 import { createControls, setMode as setCameraMode, updateCamera, handleCameraZoom, handleCameraKeyboard } from "./camera.js";
 import { initUI, setupTests } from "./ui.js";
 import Console from "./modules/console/console.js";
+import "./modules/navbar/navbar.js"; // Import navbar logic
 
 // --- Renderer ---
 const renderer = new THREE.WebGLRenderer({ antialias: true });

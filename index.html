@@ -6,6 +6,7 @@
 		<title>Mini scène 3D — Caméras sphère (Three.js)</title>
 		<link rel="stylesheet" href="css/style.css" />
 		<link rel="stylesheet" href="src/modules/console/console.css" />
+		<link rel="stylesheet" href="src/modules/navbar/navbar.css" />
 		<script type="importmap">
 			{
 				"imports": {
@@ -16,7 +17,34 @@
 		</script>
 	</head>
 	<body>
-		<div id="ui">
+		<nav class="navbar">
+			<div class="navbar-container">
+				<div class="navbar-brand">
+					<a href="#">Logo</a>
+				</div>
+				<div class="navbar-menu">
+					<ul class="navbar-nav">
+						<li class="nav-item dropdown">
+							<a href="#" class="nav-link dropdown-toggle">Vue</a>
+							<ul class="dropdown-menu" id="view-menu">
+								<li class="dropdown-submenu">
+									<a href="#" class="dropdown-item">Test</a>
+									<ul class="dropdown-menu">
+										<!-- Les éléments de test seront ajoutés ici -->
+									</ul>
+								</li>
+							</ul>
+						</li>
+					</ul>
+				</div>
+				<div class="navbar-toggle">
+					<span></span>
+					<span></span>
+					<span></span>
+				</div>
+			</div>
+		</nav>
+		<div id="ui" data-name="UI Buttons">
 			<button class="btn" data-mode="TPS">3e personne</button>
 			<button
 				alt="on voit le personnage de l'interieur !! (HS)"
@@ -37,8 +65,8 @@
 			<button class="btn" data-mode="ORBIT_SPHERE">Orbit sphère</button>
 			<button class="btn" id="runTests">Tests</button>
 		</div>
-		<div id="help"> </div>
-		<div id="diag" class="muted">
+		<div id="help" data-name="Help"> </div>
+		<div id="diag" class="muted" data-name="Diagnostics">
 			<div
 				><span id="modeLabel">Mode:</span>
 				<span id="modeName">3e personne</span></div
@@ -60,10 +88,10 @@
 				<li>Top‑down : molette = zoom</li>
 				<li>Top‑down : + / − = zoom +/- (clavier)</li>
 			</ul>
-			<div id="tests"></div>
+			<div id="tests" data-name="Test Panel"></div>
 		</div>
 
-		<div id="console"></div>
+		<div id="console" data-name="Console"></div>
 		<script type="module" src="src/main.js"></script>
 	</body>
 </html>

@@ -39,6 +39,10 @@ export function initUI(setModeCallback) {
 	};
 }
 
+export function getUIDivs() {
+    return [...document.querySelectorAll('[id][data-name]')];
+}
+
 export function setupTests(renderer, scene, camera, planet, controls) {
 	const log = (ok, msg) => {
 		const div = document.createElement("div");
