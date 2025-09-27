@@ -232,9 +232,14 @@
 			</section>
 
 			<section class="grid">
+				<div class="span-12 card">
+					<h3 style="margin-top: 0">Aperçu 3D</h3>
+					<div id="viewer"></div>
+				</div>
 				<div class="span-4 card">
 					<h3 style="margin-top: 0">Fichier</h3>
 					<div id="fileMeta" class="muted">Aucun fichier chargé.</div>
+					<div id="prefixMeta" class="muted">Préfixe : —</div>
 					<div class="row" style="margin-top: 10px">
 						<button
 							class="btn"
@@ -261,10 +266,6 @@
 					<h3 style="margin-top: 0">Animations détectées</h3>
 					<div id="animSummary" class="muted">—</div>
 					<div id="animList"></div>
-				</div>
-				<div class="span-12 card">
-					<h3 style="margin-top: 0">Aperçu 3D</h3>
-					<div id="viewer"></div>
 				</div>
 			</section>
 
@@ -306,6 +307,7 @@
 			const pick = document.getElementById("pick");
 			const fileInput = document.getElementById("file");
 			const fileMeta = document.getElementById("fileMeta");
+			const prefixMeta = document.getElementById("prefixMeta");
 			const animList = document.getElementById("animList");
 			const animSummary = document.getElementById("animSummary");
 			const status = document.getElementById("status");
@@ -314,6 +316,7 @@
 			const viewer = document.getElementById("viewer");
 
 			let lastReport = null;
+			if (prefixMeta) prefixMeta.textContent = "Préfixe : —";
 			let renderer,
 				scene,
 				camera,
@@ -434,7 +437,10 @@
 					clips.length > 1 ? "s" : ""
 				} détectée${clips.length > 1 ? "s" : ""}.`;
 				const container = document.createElement("div");
-				const report = { file: fileName, animations: [] };
+				const prefix = detectPrefix(clips);
+				const report = { file: fileName, prefix: prefix, animations: [] };
+				if (prefixMeta)
+					prefixMeta.textContent = `Préfixe : ${prefix || "(aucun)"}`;
 
 				clips.forEach((clip, idx) => {
 					const tracks = clip.tracks || [];
@@ -555,29 +561,30 @@
 					frameToFit(currentRoot, camera, controls);
 				}
 
-				// mixer & lecture Idle si trouvée
+				// mixer & lecture Idle si trouvée (sinon 1er clip en fallback)
 				if (clips && clips.length) {
 					mixer = new THREE.AnimationMixer(currentRoot || scene);
-					const idleClip = findIdle(clips);
-					if (idleClip) {
-						const action = mixer.clipAction(idleClip);
+					const clipToPlay = findIdle(clips) || clips[0];
+					if (clipToPlay) {
+						const action = mixer.clipAction(clipToPlay);
 						action.reset();
 						action.play();
-						status.textContent = `lecture : ${idleClip.name}`;
-					} else {
-						status.textContent = "aucune animation Idle trouvée";
+						status.textContent = `lecture : ${
+							clipToPlay.name || "Clip #1"
+						}`;
 					}
 					status.classList.add("ok");
+				} else {
+					status.textContent = "aucune animation trouvée";
 				}
 			}
 
 			function findIdle(clips) {
-				const byName = clips.find((c) =>
-					/(^|[^a-z])idle([^a-z]|$)/i.test(c.name || "")
+				return (
+					clips.find((c) =>
+						/(^|[^a-z])idle([^a-z]|$)/i.test(c.name || "")
+					) || null
 				);
-				if (byName) return byName;
-				// fallback: premier clip si pas d'Idle
-				return clips[0] || null;
 			}
 
 			function frameToFit(object3D, cam, ctrls) {
@@ -661,6 +668,25 @@
 					alert("Impossible de copier dans le presse-papier.");
 				}
 			});
+
+			function detectPrefix(clips) {
+				if (!clips || !clips.length) return "";
+				const names = clips
+					.map((c) => c.name || "")
+					.filter((n) => n.length > 0);
+				if (names.length === 0) return "";
+				// Longest Common Prefix sur tous les noms (préserve les séparateurs comme '_' ou '|').
+				let lcp = names[0];
+				for (let i = 1; i < names.length; i++) {
+					const s = names[i];
+					let j = 0;
+					const max = Math.min(lcp.length, s.length);
+					while (j < max && lcp.charCodeAt(j) === s.charCodeAt(j)) j++;
+					lcp = lcp.slice(0, j);
+					if (lcp === "") return "";
+				}
+				return lcp; // renvoie le préfixe tel quel, y compris '_' ou '|' s'ils en font partie
+			}
 
 			function escapeHtml(str) {
 				return String(str).replace(
