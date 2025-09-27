@@ -2,6 +2,8 @@
 	"file": "RobotExpressive.glb",
 	"prefix": "",
 	"scale": 0.1,
+	"speed": 0.018,
+	"rotSpeed": 0.035,
 	"animationsByName": [],
 	"animations": [
 		{
