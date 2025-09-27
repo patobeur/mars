@@ -1,57 +1,88 @@
 <!DOCTYPE html>
 <html lang="fr">
 	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>Top-Down Mars • Gravité centripète</title>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Mini scène 3D — Caméras sphère (Three.js)</title>
 		<style>
 			html,
 			body {
-				height: 100%;
 				margin: 0;
-				background: #0a0a0a;
-				color: #eee;
-				font-family: system-ui, Segoe UI, Roboto, sans-serif;
+				height: 100%;
+				background: #0a0b10;
+				color: #e6e6e6;
+				font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu,
+					Cantarell, "Helvetica Neue", Arial, "Noto Sans",
+					"Apple Color Emoji", "Segoe UI Emoji";
 			}
 			#ui {
 				position: fixed;
 				top: 12px;
 				left: 12px;
-				background: rgba(0, 0, 0, 0.45);
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+				z-index: 10;
+			}
+			.btn {
+				padding: 8px 12px;
+				border-radius: 12px;
+				border: 1px solid #3b3f5c;
+				background: #151827;
+				color: #e6e6e6;
+				cursor: pointer;
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+				user-select: none;
+			}
+			.btn.active {
+				background: #2a6df6;
+				border-color: #2a6df6;
+				color: white;
+			}
+			#help {
+				position: fixed;
+				right: 12px;
+				top: 12px;
+				background: #111525;
 				padding: 10px 12px;
-				border-radius: 10px;
-				font-size: 14px;
-				backdrop-filter: blur(4px);
+				border-radius: 12px;
+				border: 1px solid #30344a;
+				max-width: 360px;
+				line-height: 1.35;
+				box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 			}
-			#ui code {
-				background: rgba(255, 255, 255, 0.08);
-				padding: 2px 6px;
-				border-radius: 6px;
-			}
-			#tips {
-				opacity: 0.85;
-			}
-			#fps {
-				margin-top: 6px;
-				opacity: 0.6;
+			#modeLabel {
+				font-weight: 700;
 			}
 			canvas {
 				display: block;
 			}
+			#diag {
+				position: fixed;
+				left: 12px;
+				bottom: 12px;
+				background: #101427;
+				border: 1px solid #30344a;
+				border-radius: 12px;
+				padding: 8px 10px;
+				font-size: 12px;
+				line-height: 1.3;
+				box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+				max-width: 520px;
+			}
+			#tests {
+				margin-top: 6px;
+			}
+			.pass {
+				color: #7cff9b;
+			}
+			.fail {
+				color: #ff7c7c;
+			}
+			.muted {
+				color: #9aa4d3;
+			}
 		</style>
-	</head>
-	<body>
-		<div id="ui">
-			<div id="tips">...</div>
-			<div id="fps">...</div>
-        </div>
-
-		<!-- Polyfill pour Firefox/Safari (sécurisé sur tous navigateurs) -->
-		<script
-			async
-			src="https://unpkg.com/es-module-shims@1.10.0/dist/es-module-shims.js"></script>
-
-		<!-- Import map : on “remappe” les spécificateurs -->
 		<script type="importmap">
 			{
 				"imports": {
@@ -60,8 +91,439 @@
 				}
 			}
 		</script>
+	</head>
+	<body>
+		<div id="ui">
+			<button class="btn" data-mode="TPS">3e personne</button>
+			<button class="btn" data-mode="FPS">1re personne</button>
+			<button class="btn" data-mode="SAT">Satellite</button>
+			<button class="btn" data-mode="TOP">Top‑down</button>
+			<button class="btn" data-mode="ORBIT">Orbit perso</button>
+			<button class="btn" data-mode="ORBIT_SPHERE">Orbit sphère</button>
+			<button class="btn" id="runTests">Tests</button>
+		</div>
+		<div id="help"> </div>
+		<div id="diag" class="muted">
+			<div
+				><span id="modeLabel">Mode:</span>
+				<span id="modeName">3e personne</span></div
+			>
+			<ul style="margin: 8px 0 0 18px; padding: 0">
+				<li>Z / S : avancer / reculer</li>
+				<li>Q / D : pivoter gauche / droite</li>
+				<li>Chiffres 1..6 : changer de caméra</li>
+				<li
+					>Orbit perso : souris pour orbiter / zoom (autour du
+					personnage)</li
+				>
+				<li
+					>Orbit sphère : souris pour orbiter / zoom (autour du centre de
+					la sphère)</li
+				>
+				<li>Top‑down : molette = zoom</li>
+				<li>Top‑down : + / − = zoom +/- (clavier)</li>
+			</ul>
+			<div id="tests"> </div
+		></div>
 
-        <!-- Point d'entrée du jeu -->
-		<script type="module" src="js/main.js"></script>
+		<script type="module">
+			import * as THREE from "three";
+			import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+			const config = {
+				player: {
+					glb: "assets/Animated_Base_Character.glb",
+					height: 0, // écart à la surface (marge)
+					colliderRadius: 1, // rayon de collision
+					scale: 1.0,
+					jumpStrength: 15, // impulsion verticale pour le saut
+					spawnLatLongDeg: { lat: 15, lon: -40 }, // point de départ (facultatif)
+					animations: [
+						"Rig|Crouch_Fwd_Loop",
+						"Rig|Crouch_Idle_Loop",
+						"Rig|Dance_Loop",
+						"Rig|Death01",
+						"Rig|Driving_Loop",
+						"Rig|Fixing_Kneeling",
+						"Rig|Hit_Chest",
+						"Rig|Hit_Head",
+						"Rig|Idle_Loop",
+						"Rig|Idle_Talking_Loop",
+						"Rig|Idle_Torch_Loop",
+						"Rig|Interact",
+						"Rig|Jog_Fwd_Loop",
+						"Rig|Jump_Land",
+						"Rig|Jump_Loop",
+						"Rig|Jump_Start",
+						"Rig|Pickup_Table",
+						"Rig|Pistol_Aim_Down",
+						"Rig|Pistol_Aim_Neutral",
+						"Rig|Pistol_Idle_Loop",
+						"Rig|Pistol_Reload",
+						"Rig|Pistol_Shoot",
+						"Rig|Punch_Cross",
+						"Rig|Punch_Enter",
+						"Rig|Punch_Jab",
+						"Rig|Push_Loop",
+						"Rig|Roll",
+						"Rig|Roll_RM",
+						"Rig|Sitting_Enter",
+						"Rig|Sitting_Exit",
+						"Rig|Sitting_Idle_Loop",
+						"Rig|Sitting_Talking_Loop",
+						"Rig|Spell_Simple_Enter",
+						"Rig|Spell_Simple_Exit",
+						"Rig|Spell_Simple_Idle_Loop",
+						"Rig|Spell_Simple_Shoot",
+						"Rig|Sprint_Fwd",
+						"Rig|Swim_Fwd_Loop",
+						"Rig|Swim_Idle_Loop",
+						"Rig|Sword_Attack",
+						"Rig|Sword_Attack_RM",
+						"Rig|Sword_Idle",
+						"Rig|Walk_Formal_Loop",
+						"Rig|Walk_Loop",
+					],
+				},
+				rocks: {
+					count: 100,
+					safeSpawnRadius: 12, // pas de rochers trop près du spawn joueur (distance tangentielle approx)
+					variants: [
+						{
+							glb: "assets/Rock.glb",
+							scaleMin: 0.9,
+							scaleMax: 1.6,
+							height: 0,
+						},
+						{
+							glb: "assets/Rock Medium.glb",
+							scaleMin: 0.8,
+							scaleMax: 1.4,
+							height: 0,
+						},
+					],
+				},
+			};
+			const renderer = new THREE.WebGLRenderer({ antialias: true });
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+			document.body.appendChild(renderer.domElement);
+
+			const scene = new THREE.Scene();
+			scene.background = new THREE.Color(0x070910);
+
+			const camera = new THREE.PerspectiveCamera(
+				60,
+				window.innerWidth / window.innerHeight,
+				0.05,
+				1000
+			);
+			camera.position.set(0, 6, 10);
+
+			const controls = new OrbitControls(camera, renderer.domElement);
+			controls.enabled = false;
+			controls.enableDamping = true;
+			controls.target.set(0, 0, 0);
+
+			scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+			const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+			dir.position.set(8, 10, 6);
+			scene.add(dir);
+
+			const R = 5;
+			const planetGeo = new THREE.SphereGeometry(R, 96, 64);
+			const planetMat = new THREE.MeshStandardMaterial({
+				color: 0x2050d0,
+				roughness: 0.9,
+				metalness: 0.0,
+				emissive: 0x000000,
+			});
+			const planet = new THREE.Mesh(planetGeo, planetMat);
+			scene.add(planet);
+
+			const atmosphere = new THREE.Mesh(
+				new THREE.SphereGeometry(R * 1.03, 64, 48),
+				new THREE.MeshBasicMaterial({
+					color: 0x4ea8ff,
+					transparent: true,
+					opacity: 0.07,
+				})
+			);
+			scene.add(atmosphere);
+
+			// Cubes jaunes fixes
+			const cubeMat = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+			const cubeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+			for (let i = 0; i < 40; i++) {
+				const phi = Math.acos(2 * Math.random() - 1);
+				const theta = Math.random() * Math.PI * 2;
+				const x = R * Math.sin(phi) * Math.cos(theta);
+				const y = R * Math.cos(phi);
+				const z = R * Math.sin(phi) * Math.sin(theta);
+				const cube = new THREE.Mesh(cubeGeo, cubeMat);
+				cube.position.set(x, y, z);
+				cube.lookAt(0, 0, 0);
+				scene.add(cube);
+			}
+
+			// Poteaux blancs
+			const poleMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+			const poleGeo = new THREE.CylinderGeometry(0.15, 0.15, 2, 16);
+			const northPole = new THREE.Mesh(poleGeo, poleMat);
+			northPole.position.set(0, R + 1, 0);
+			scene.add(northPole);
+			const southPole = new THREE.Mesh(poleGeo, poleMat);
+			southPole.position.set(0, -R - 1, 0);
+			scene.add(southPole);
+
+			// Étoiles
+			const stars = new THREE.Points(
+				new THREE.BufferGeometry(),
+				new THREE.PointsMaterial({ size: 0.03, color: 0xffffff })
+			);
+			const starPos = new Float32Array(2000 * 3);
+			for (let i = 0; i < 2000; i++) {
+				const r = 120 + Math.random() * 80;
+				const phi = Math.acos(2 * Math.random() - 1);
+				const theta = Math.random() * Math.PI * 2;
+				starPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+				starPos[i * 3 + 1] = r * Math.cos(phi);
+				starPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+			}
+			stars.geometry.setAttribute(
+				"position",
+				new THREE.BufferAttribute(starPos, 3)
+			);
+			scene.add(stars);
+
+			// Personnage
+			const charGroup = new THREE.Group();
+			charGroup.add(
+				new THREE.Mesh(
+					new THREE.SphereGeometry(0.2, 16, 12),
+					new THREE.MeshStandardMaterial({ color: 0xffcc66 })
+				)
+			);
+			const arrow = new THREE.Mesh(
+				new THREE.ConeGeometry(0.12, 0.32, 16),
+				new THREE.MeshStandardMaterial({ color: 0xff6666 })
+			);
+			arrow.position.y = 0.35;
+			charGroup.add(arrow);
+			scene.add(charGroup);
+
+			let charPos = new THREE.Vector3(R, 0, 0);
+			let charForward = new THREE.Vector3();
+			const speed = 0.018,
+				rotSpeed = 0.035;
+
+			function initForwardAt(pos) {
+				const n = pos.clone().normalize();
+				charForward
+					.set(0, 0, 1)
+					.addScaledVector(n, -n.dot(new THREE.Vector3(0, 0, 1)));
+				if (charForward.lengthSq() < 1e-8) {
+					charForward
+						.set(1, 0, 0)
+						.addScaledVector(n, -n.dot(new THREE.Vector3(1, 0, 0)));
+				}
+				charForward.normalize();
+			}
+			initForwardAt(charPos);
+
+			const keys = new Set();
+			window.addEventListener("keydown", (e) => {
+				keys.add(e.key.toLowerCase());
+			});
+			window.addEventListener("keyup", (e) => {
+				keys.delete(e.key.toLowerCase());
+			});
+
+			const MODES = {
+				TPS: "TPS",
+				FPS: "FPS",
+				SAT: "SAT",
+				TOP: "TOP",
+				ORBIT: "ORBIT",
+				ORBIT_SPHERE: "ORBIT_SPHERE",
+			};
+			let mode = MODES.TPS;
+			let topDownHeight = 3.2;
+			const TOP_MIN = 1.2,
+				TOP_MAX = 10;
+
+			const modeName = document.getElementById("modeName");
+			const buttons = [...document.querySelectorAll(".btn")];
+			document.getElementById("ui").addEventListener("click", (e) => {
+				if (e.target.matches("button[data-mode]"))
+					setMode(e.target.dataset.mode);
+			});
+
+			function setMode(m) {
+				mode = m;
+				buttons.forEach((b) =>
+					b.classList.toggle("active", b.dataset.mode === m)
+				);
+				const labels = {
+					TPS: "3e personne",
+					FPS: "1re personne",
+					SAT: "Satellite",
+					TOP: "Top‑down",
+					ORBIT: "Orbit perso",
+					ORBIT_SPHERE: "Orbit sphère",
+				};
+				modeName.textContent = labels[m] || m;
+				controls.enabled =
+					mode === MODES.ORBIT || mode === MODES.ORBIT_SPHERE;
+				if (mode === MODES.ORBIT) {
+					controls.target.copy(charPos);
+				} else if (mode === MODES.ORBIT_SPHERE) {
+					controls.target.set(0, 0, 0);
+				}
+			}
+			setMode(MODES.TPS);
+
+			function tangentBasisAt(pos) {
+				const n = pos.clone().normalize();
+				let ref = new THREE.Vector3(0, 1, 0);
+				if (Math.abs(n.dot(ref)) > 0.95) ref = new THREE.Vector3(1, 0, 0);
+				const t1 = new THREE.Vector3().crossVectors(ref, n).normalize();
+				const t2 = new THREE.Vector3().crossVectors(n, t1).normalize();
+				return { n, t1, t2 };
+			}
+
+			function updateCharacter() {
+				const n0 = charPos.clone().normalize();
+				if (keys.has("q")) charForward.applyAxisAngle(n0, +rotSpeed);
+				if (keys.has("d")) charForward.applyAxisAngle(n0, -rotSpeed);
+				if (keys.has("z")) charPos.addScaledVector(charForward, speed);
+				if (keys.has("s")) charPos.addScaledVector(charForward, -speed);
+				charPos.normalize().multiplyScalar(R);
+				const n1 = charPos.clone().normalize();
+				const q = new THREE.Quaternion().setFromUnitVectors(n0, n1);
+				charForward.applyQuaternion(q);
+				charForward.addScaledVector(n1, -charForward.dot(n1)).normalize();
+				const lookAt = charPos.clone().add(charForward);
+				charGroup.position.copy(charPos);
+				charGroup.up.copy(n1);
+				charGroup.lookAt(lookAt);
+			}
+
+			function updateCamera() {
+				const { n } = tangentBasisAt(charPos);
+				const forward = charForward;
+				if (mode === MODES.TPS) {
+					const camPos = charPos
+						.clone()
+						.addScaledVector(forward, -1.6)
+						.addScaledVector(n, 0.7);
+					camera.position.lerp(camPos, 0.25);
+					camera.up.copy(n);
+					camera.lookAt(charPos.clone().addScaledVector(forward, 1.2));
+				} else if (mode === MODES.FPS) {
+					const eye = charPos.clone().addScaledVector(n, 0.18);
+					const target = charPos.clone().addScaledVector(forward, 2.0);
+					camera.position.lerp(eye, 0.4);
+					camera.up.copy(n);
+					camera.lookAt(target);
+				} else if (mode === MODES.SAT) {
+					const camPos = charPos
+						.clone()
+						.normalize()
+						.multiplyScalar(R * 3.2);
+					camera.position.lerp(camPos, 0.2);
+					camera.up.set(0, 1, 0);
+					camera.lookAt(charPos);
+				} else if (mode === MODES.TOP) {
+					const camPos = charPos.clone().addScaledVector(n, topDownHeight);
+					camera.position.lerp(camPos, 0.25);
+					camera.up.copy(forward);
+					camera.lookAt(charPos);
+				} else if (mode === MODES.ORBIT) {
+					controls.target.copy(charPos);
+					controls.update();
+				} else if (mode === MODES.ORBIT_SPHERE) {
+					controls.target.set(0, 0, 0);
+					controls.update();
+				}
+			}
+
+			function tick() {
+				updateCharacter();
+				updateCamera();
+				renderer.render(scene, camera);
+				requestAnimationFrame(tick);
+			}
+			tick();
+
+			window.addEventListener("resize", () => {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+			});
+
+			// Zoom molette Top-down
+			window.addEventListener(
+				"wheel",
+				(e) => {
+					if (mode !== MODES.TOP) return;
+					e.preventDefault();
+					const factor = Math.exp(e.deltaY * 0.001);
+					topDownHeight = THREE.MathUtils.clamp(
+						topDownHeight * factor,
+						TOP_MIN,
+						TOP_MAX
+					);
+				},
+				{ passive: false }
+			);
+
+			// Zoom clavier Top-down
+			window.addEventListener("keydown", (e) => {
+				if (mode === MODES.TOP) {
+					if (e.key === "+" || e.key === "=")
+						topDownHeight = Math.max(TOP_MIN, topDownHeight * 0.9);
+					if (e.key === "-")
+						topDownHeight = Math.min(TOP_MAX, topDownHeight * 1.1);
+				}
+				if (e.key === "1") setMode(MODES.TPS);
+				if (e.key === "2") setMode(MODES.FPS);
+				if (e.key === "3") setMode(MODES.SAT);
+				if (e.key === "4") setMode(MODES.TOP);
+				if (e.key === "5") setMode(MODES.ORBIT);
+				if (e.key === "6") setMode(MODES.ORBIT_SPHERE);
+			});
+
+			const testsEl = document.getElementById("tests");
+			const log = (ok, msg) => {
+				const p = document.createElement("div");
+				p.className = ok ? "pass" : "fail";
+				p.textContent = (ok ? "✔︎ " : "✖︎ ") + msg;
+				testsEl.appendChild(p);
+			};
+			function runTests() {
+				testsEl.innerHTML = "";
+				try {
+					log(!!THREE, "THREE chargé via import map");
+					log(
+						renderer instanceof THREE.WebGLRenderer,
+						"Renderer initialisé"
+					);
+					log(scene instanceof THREE.Scene, "Scene créée");
+					log(camera instanceof THREE.PerspectiveCamera, "Camera créée");
+					log(
+						planet.geometry.parameters.radius === R,
+						"Planète rayon R correct"
+					);
+				} catch (e) {
+					const p = document.createElement("div");
+					p.className = "fail";
+					p.textContent = "Tests interrompus: " + (e?.message || e);
+					testsEl.appendChild(p);
+				}
+			}
+			document
+				.getElementById("runTests")
+				.addEventListener("click", runTests);
+		</script>
 	</body>
 </html>
