@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { R, MODES } from "./config.js";
-import { initScene } from "./scene.js";
+import { initScene, updateCubes } from "./scene.js";
 import { createCharacter, updateCharacter, tangentBasisAt } from "./character.js";
 import { createControls, setMode as setCameraMode, updateCamera, handleCameraZoom, handleCameraKeyboard } from "./camera.js";
 import { initUI, setupTests } from "./ui.js";
@@ -19,7 +19,7 @@ Console.init(consoleContainer);
 Console.addMessage("Welcome!");
 
 // --- Scene, Camera, Planet ---
-const { scene, camera, planet } = initScene();
+const { scene, camera, planet, cubes } = initScene();
 Console.addMessage("Scene initialized");
 
 // --- Character ---
@@ -63,8 +63,11 @@ setupTests(renderer, scene, camera, planet, controls);
 
 
 // --- Animation Loop ---
+const clock = new THREE.Clock();
 function tick() {
-	updateCharacter(character, keys, tangentBasisAt);
+	const dt = clock.getDelta();
+	updateCharacter(character, keys, tangentBasisAt, dt);
+	updateCubes(cubes, planet, dt);
 	updateCamera(currentMode, camera, character, controls);
 	renderer.render(scene, camera);
 	requestAnimationFrame(tick);

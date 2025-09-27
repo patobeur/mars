@@ -48,18 +48,27 @@ export function initScene() {
 	scene.add(atmosphere);
 
 	// --- Repères visuels surface ---
+	const cubes = [];
 	const cubeMat = new THREE.MeshStandardMaterial({ color: 0xffff00 });
 	const cubeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
 	for (let i = 0; i < 40; i++) {
 		const phi = Math.acos(2 * Math.random() - 1);
 		const theta = Math.random() * Math.PI * 2;
-		const x = R * Math.sin(phi) * Math.cos(theta);
-		const y = R * Math.cos(phi);
-		const z = R * Math.sin(phi) * Math.sin(theta);
+		const initialHeight = R + Math.random() * 5; // Spawn between R and R+5
+		const x = initialHeight * Math.sin(phi) * Math.cos(theta);
+		const y = initialHeight * Math.cos(phi);
+		const z = initialHeight * Math.sin(phi) * Math.sin(theta);
+
 		const cube = new THREE.Mesh(cubeGeo, cubeMat);
 		cube.position.set(x, y, z);
-		cube.lookAt(0, 0, 0);
+		cube.lookAt(planet.position);
+
+		// Add physics properties
+		cube.velocity = new THREE.Vector3();
+		cube.onGround = false;
+
 		scene.add(cube);
+		cubes.push(cube);
 	}
 
 	// Poteaux blancs
@@ -92,5 +101,23 @@ export function initScene() {
 	);
 	scene.add(stars);
 
-	return { scene, camera, planet };
+	return { scene, camera, planet, cubes };
+}
+
+export function updateCubes(cubes, planet, dt) {
+    const gravity = -3.72076; // Mars gravity
+	cubes.forEach(cube => {
+        if (cube.onGround) return;
+
+		const normal = cube.position.clone().normalize();
+		cube.velocity.addScaledVector(normal, gravity * dt);
+		cube.position.addScaledVector(cube.velocity, dt);
+
+		const distanceToCenter = cube.position.length();
+		if (distanceToCenter <= R) {
+			cube.position.normalize().multiplyScalar(R);
+			cube.velocity.set(0, 0, 0);
+			cube.onGround = true;
+		}
+	});
 }
