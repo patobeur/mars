@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { R } from "./config.js";
-import { Minerai } from "./modules/scene/Minerai.js";
+import { Ressources } from "./modules/scene/Ressources.js";
 
 export function initScene() {
 	const scene = new THREE.Scene();
@@ -48,7 +48,7 @@ export function initScene() {
 	);
 	scene.add(atmosphere);
 
-	const minerais = new Minerai(R, scene, planet);
+	const ressources = new Ressources(R, scene, planet);
 
 	// Poteaux blancs
 	const poleMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
@@ -80,9 +80,11 @@ export function initScene() {
 	);
 	scene.add(stars);
 
-	minerais.addMinerai(200, "astate");
-	minerais.addMinerai(200, "or");
-	const cubes = minerais.get_cubes();
+	ressources.addRessources(200, "astate");
+	ressources.addRessources(200, "or");
+	ressources.addRessources(200, "carbone");
+
+	const cubes = ressources.get_cubes();
 	console.log(cubes);
 	return { scene, camera, planet, cubes };
 }

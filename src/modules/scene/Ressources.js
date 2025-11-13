@@ -1,19 +1,30 @@
 import * as THREE from "three";
 
-export class Minerai {
+export class Ressources {
 	constructor(R, scene, planet) {
 		this.cubes = [];
 		this.scene = scene;
 		this.planet = planet;
 		this.R = R;
+		this.ressourcesPath = "assets/ressources/";
+		this.types = {
+			astate: { model: "Rock.glb", color: 0xeaeaea },
+			or: { model: "Rock Medium.glb", color: 0xffff00 },
+			carbone: { model: "Rock Medium.glb", color: 0x000000 },
+		};
 	}
 
 	get_cubes = () => {
 		return this.cubes;
 	};
 
-	addMinerai = (n, type) => {
-		const cubeMat = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+	addRessources = (n, type) => {
+		let color = undefined;
+		if (this.types[type] != undefined) {
+			color = this.types[type].color;
+		} else return;
+
+		const cubeMat = new THREE.MeshStandardMaterial({ color: color });
 		const cubeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
 		for (let i = 0; i < n; i++) {
 			const phi = Math.acos(2 * Math.random() - 1);
