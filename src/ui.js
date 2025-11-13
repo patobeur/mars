@@ -1,6 +1,23 @@
 import * as THREE from "three";
 import { MODES } from "./config.js";
 
+export function initDiag() {
+	const menuDiv = document.getElementById("options-menu");
+	const diagLink = document.getElementById("diagLink");
+	const diagDiv = document.getElementById("diag");
+
+	diagDiv.classList.add("hidden");
+	// Gérer les raccourcis clavier pour changer de mode
+	menuDiv.addEventListener("click", (e) => {
+		let isHidden = diagDiv.classList.contains("hidden");
+		console.log();
+		if (isHidden) {
+			diagDiv.classList.remove("hidden");
+		} else {
+			diagDiv.classList.add("hidden");
+		}
+	});
+}
 export function initUI(setModeCallback) {
 	const modeName = document.getElementById("modeName");
 
@@ -51,7 +68,10 @@ export function setupTests(renderer, scene, camera, planet, controls) {
 			log(renderer instanceof THREE.WebGLRenderer, "Renderer initialisé");
 			log(scene instanceof THREE.Scene, "Scene créée");
 			log(camera instanceof THREE.PerspectiveCamera, "Camera créée");
-			log(planet.geometry.parameters.radius === 50, "Planète rayon R correct");
+			log(
+				planet.geometry.parameters.radius === 50,
+				"Planète rayon R correct"
+			);
 			// Add more tests if needed
 		} catch (e) {
 			log(false, "Tests interrompus: " + (e?.message || e));

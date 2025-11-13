@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { R } from "./config.js";
+import { Minerai } from "./modules/scene/Minerai.js";
 
 export function initScene() {
 	const scene = new THREE.Scene();
@@ -47,29 +48,7 @@ export function initScene() {
 	);
 	scene.add(atmosphere);
 
-	// --- Repères visuels surface ---
-	const cubes = [];
-	const cubeMat = new THREE.MeshStandardMaterial({ color: 0xffff00 });
-	const cubeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-	for (let i = 0; i < 40; i++) {
-		const phi = Math.acos(2 * Math.random() - 1);
-		const theta = Math.random() * Math.PI * 2;
-		const initialHeight = R + Math.random() * 5; // Spawn between R and R+5
-		const x = initialHeight * Math.sin(phi) * Math.cos(theta);
-		const y = initialHeight * Math.cos(phi);
-		const z = initialHeight * Math.sin(phi) * Math.sin(theta);
-
-		const cube = new THREE.Mesh(cubeGeo, cubeMat);
-		cube.position.set(x, y, z);
-		cube.lookAt(planet.position);
-
-		// Add physics properties
-		cube.velocity = new THREE.Vector3();
-		cube.onGround = false;
-
-		scene.add(cube);
-		cubes.push(cube);
-	}
+	const minerais = new Minerai(R, scene, planet);
 
 	// Poteaux blancs
 	const poleMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
@@ -101,13 +80,17 @@ export function initScene() {
 	);
 	scene.add(stars);
 
+	minerais.addMinerai(200, "astate");
+	minerais.addMinerai(200, "or");
+	const cubes = minerais.get_cubes();
+	console.log(cubes);
 	return { scene, camera, planet, cubes };
 }
 
 export function updateCubes(cubes, planet, dt) {
-    const gravity = -3.72076; // Mars gravity
-	cubes.forEach(cube => {
-        if (cube.onGround) return;
+	const gravity = -3.72076; // Mars gravity
+	cubes.forEach((cube) => {
+		if (cube.onGround) return;
 
 		const normal = cube.position.clone().normalize();
 		cube.velocity.addScaledVector(normal, gravity * dt);
