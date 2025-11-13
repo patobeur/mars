@@ -39,6 +39,7 @@ export class Ressources {
 			// Add physics properties
 			cube.velocity = new THREE.Vector3();
 			cube.onGround = false;
+			cube.type = type;
 			this.scene.add(cube);
 			this.cubes.push(cube);
 		}
