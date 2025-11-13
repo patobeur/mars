@@ -50,7 +50,7 @@ body {
 canvas {
 	display: block;
 }
-#diag {
+#infos {
 	position: fixed;
 	left: 12px;
 	bottom: 12px;

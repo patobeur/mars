@@ -2,19 +2,24 @@ import * as THREE from "three";
 import { MODES } from "./config.js";
 
 export function initDiag() {
-	const menuDiv = document.getElementById("options-menu");
-	const diagLink = document.getElementById("diagLink");
-	const diagDiv = document.getElementById("diag");
+	const menuDiv = document.getElementById("infos-menu");
+	const diagLink = document.getElementById("infosLink");
+	const diagDiv = document.getElementById("infos");
+	const textes = ["Afficher les Infos", "Retirer les Infos"];
 
 	diagDiv.classList.add("hidden");
+	diagLink.textContent = textes[0];
+
 	// Gérer les raccourcis clavier pour changer de mode
 	menuDiv.addEventListener("click", (e) => {
 		let isHidden = diagDiv.classList.contains("hidden");
 		console.log();
 		if (isHidden) {
 			diagDiv.classList.remove("hidden");
+			diagLink.textContent = textes[1];
 		} else {
 			diagDiv.classList.add("hidden");
+			diagLink.textContent = textes[0];
 		}
 	});
 }
