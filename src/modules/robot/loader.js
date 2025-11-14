@@ -13,6 +13,11 @@ export function loadRobot(scene, loadingManager) {
                 (gltf) => {
                     const model = gltf.scene;
                     model.scale.setScalar(data.scale);
+					model.traverse((child) => {
+						if (child.isMesh) {
+							child.castShadow = true;
+						}
+					});
                     scene.add(model);
                     resolve({ model, data, animations: gltf.animations });
                 },
