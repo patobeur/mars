@@ -34,7 +34,8 @@ async function main() {
 		controls,
 		currentMode,
 		updateUI,
-		updateNavbar;
+		updateNavbar,
+		dirLight;
 
 	async function setup() {
 		// --- Renderer ---
@@ -53,6 +54,7 @@ async function main() {
 		camera = sceneData.camera;
 		planet = sceneData.planet;
 		ressources = sceneData.ressources;
+		dirLight = sceneData.dir;
 		Console.addMessage("Scene initialized");
 		Console.addMessage("Loading robot model...");
 
@@ -121,6 +123,11 @@ async function main() {
 		updateRobot(character, keys, tangentBasisAt, dt);
 		updateRessources(ressources, planet, dt);
 		updateCamera(currentMode, camera, character, controls);
+
+		if (dirLight && character && character.charPos) {
+			dirLight.position.copy(character.charPos).add(new THREE.Vector3(8, 10, 6));
+			dirLight.target.position.copy(character.charPos);
+		}
 
 		if (proximityManager && character && character.charPos) {
 			proximityManager.update();

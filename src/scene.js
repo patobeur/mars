@@ -99,7 +99,7 @@ export function initScene(loadingManager) {
 
 	const ressources = ressourcesManager.get_ressources();
 	console.log(ressources);
-	return { scene, camera, planet, ressources };
+	return { scene, camera, planet, ressources, dir };
 }
 
 export function updateRessources(ressources, planet, dt) {
