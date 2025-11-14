@@ -18,6 +18,12 @@ export function initScene(loadingManager) {
 	const dir = new THREE.DirectionalLight(0xffffff, 0.9);
 	dir.castShadow = true;
 	dir.position.set(8, 10, 6);
+	dir.shadow.camera.top = 10;
+	dir.shadow.camera.bottom = -10;
+	dir.shadow.camera.left = -10;
+	dir.shadow.camera.right = 10;
+	dir.shadow.camera.near = 0.1;
+	dir.shadow.camera.far = 100;
 	scene.add(dir);
 
 	// --- Textures ---
@@ -37,8 +43,8 @@ export function initScene(loadingManager) {
 	});
 	const marsGeometry = new THREE.SphereGeometry(R, 64, 64);
 	const planet = new THREE.Mesh(marsGeometry, marsMaterial);
-
 	planet.receiveShadow = true;
+	planet.castShadow = false;
 
 	scene.add(planet);
 
