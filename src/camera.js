@@ -27,7 +27,10 @@ export function setMode(mode, controls, camera, character) {
 		controls.maxDistance = 8;
 		controls.target.copy(charPos);
 		const { n } = tangentBasisAt(charPos);
-		const back = charForward.clone().multiplyScalar(-2.5).addScaledVector(n, 1.0);
+		const back = charForward
+			.clone()
+			.multiplyScalar(-2.5)
+			.addScaledVector(n, 1.0);
 		camera.position.copy(charPos).add(back);
 		camera.lookAt(charPos);
 	} else if (mode === MODES.ORBIT_SPHERE) {
@@ -36,7 +39,11 @@ export function setMode(mode, controls, camera, character) {
 		controls.maxDistance = R * 5.0;
 		controls.target.set(0, 0, 0);
 		let d = camera.position.length();
-		if (!Number.isFinite(d) || d < controls.minDistance || d > controls.maxDistance) {
+		if (
+			!Number.isFinite(d) ||
+			d < controls.minDistance ||
+			d > controls.maxDistance
+		) {
 			const dir = camera.position.clone().normalize();
 			if (dir.lengthSq() < 1e-6) dir.set(1, 0, 0);
 			const desired = THREE.MathUtils.clamp(
@@ -59,7 +66,10 @@ export function updateCamera(mode, camera, character, controls) {
 	const forward = charForward;
 
 	if (mode === MODES.TPS) {
-		const camPos = charPos.clone().addScaledVector(forward, -1.6).addScaledVector(n, 0.7);
+		const camPos = charPos
+			.clone()
+			.addScaledVector(forward, -1.6)
+			.addScaledVector(n, 0.7);
 		camera.position.lerp(camPos, 0.25);
 		camera.up.copy(n);
 		camera.lookAt(charPos.clone().addScaledVector(forward, 1.2));
@@ -126,7 +136,6 @@ export function handleCameraKeyboard(event, mode) {
 	if (mode === MODES.SAT) {
 		if (event.key === "+" || event.key === "=")
 			satDistance = Math.max(SAT_MIN, satDistance * 0.9);
-		if (event.key === "-")
-			satDistance = Math.min(SAT_MAX, satDistance * 1.1);
+		if (event.key === "-") satDistance = Math.min(SAT_MAX, satDistance * 1.1);
 	}
 }
