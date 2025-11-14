@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { R } from "./config.js";
 import { Ressources } from "./modules/scene/Ressources.js";
 
-export function initScene() {
+export function initScene(loadingManager) {
 	const scene = new THREE.Scene();
 	scene.background = new THREE.Color(0x070910);
 
@@ -20,7 +20,7 @@ export function initScene() {
 	scene.add(dir);
 
 	// --- Textures ---
-	const loader = new THREE.TextureLoader();
+	const loader = new THREE.TextureLoader(loadingManager);
 	const color = loader.load("assets/textures/mars/mars_8k_color.jpg");
 	const bump = loader.load("assets/textures/mars/mars_8k_bump.jpg");
 	const normal = loader.load("assets/textures/mars/mars_1k_normal.jpg");
@@ -48,7 +48,7 @@ export function initScene() {
 	);
 	scene.add(atmosphere);
 
-	const ressourcesManager = new Ressources(R, scene, planet);
+	const ressourcesManager = new Ressources(R, scene, planet, loadingManager);
 
 	// Poteaux blancs
 	const poleMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
