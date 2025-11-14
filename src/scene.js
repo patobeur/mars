@@ -48,7 +48,7 @@ export function initScene() {
 	);
 	scene.add(atmosphere);
 
-	const ressources = new Ressources(R, scene, planet);
+	const ressourcesManager = new Ressources(R, scene, planet);
 
 	// Poteaux blancs
 	const poleMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
@@ -80,29 +80,29 @@ export function initScene() {
 	);
 	scene.add(stars);
 
-	ressources.addRessources(200, "astate");
-	ressources.addRessources(200, "or");
-	ressources.addRessources(200, "carbone");
+	ressourcesManager.addRessources(200, "astate");
+	ressourcesManager.addRessources(200, "or");
+	ressourcesManager.addRessources(200, "carbone");
 
-	const cubes = ressources.get_cubes();
-	console.log(cubes);
-	return { scene, camera, planet, cubes };
+	const ressources = ressourcesManager.get_ressources();
+	console.log(ressources);
+	return { scene, camera, planet, ressources };
 }
 
-export function updateCubes(cubes, planet, dt) {
+export function updateRessources(ressources, planet, dt) {
 	const gravity = -3.72076; // Mars gravity
-	cubes.forEach((cube) => {
-		if (cube.onGround) return;
+	ressources.forEach((ressource) => {
+		if (ressource.onGround) return;
 
-		const normal = cube.position.clone().normalize();
-		cube.velocity.addScaledVector(normal, gravity * dt);
-		cube.position.addScaledVector(cube.velocity, dt);
+		const normal = ressource.position.clone().normalize();
+		ressource.velocity.addScaledVector(normal, gravity * dt);
+		ressource.position.addScaledVector(ressource.velocity, dt);
 
-		const distanceToCenter = cube.position.length();
+		const distanceToCenter = ressource.position.length();
 		if (distanceToCenter <= R) {
-			cube.position.normalize().multiplyScalar(R);
-			cube.velocity.set(0, 0, 0);
-			cube.onGround = true;
+			ressource.position.normalize().multiplyScalar(R);
+			ressource.velocity.set(0, 0, 0);
+			ressource.onGround = true;
 		}
 	});
 }

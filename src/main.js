@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { R, MODES } from "./config.js";
-import { initScene, updateCubes } from "./scene.js";
+import { initScene, updateRessources } from "./scene.js";
 import {
 	createRobot,
 	updateRobot,
@@ -31,7 +31,7 @@ async function main() {
 	Console.addMessage("Welcome!");
 
 	// --- Scene, Camera, Planet ---
-	const { scene, camera, planet, cubes } = initScene();
+	const { scene, camera, planet, ressources } = initScene();
 	Console.addMessage("Scene initialized");
 	Console.addMessage("Loading robot model...");
 
@@ -40,7 +40,7 @@ async function main() {
 	Console.addMessage("Robot loaded successfully!");
 
 	// --- Proximity Manager ---
-	const proximityManager = new ProximityManager(character, cubes);
+	const proximityManager = new ProximityManager(character, ressources);
 
 	// --- Controls ---
 	const controls = createControls(camera, renderer);
@@ -88,7 +88,7 @@ async function main() {
 	function tick() {
 		const dt = clock.getDelta();
 		updateRobot(character, keys, tangentBasisAt, dt);
-		updateCubes(cubes, planet, dt);
+		updateRessources(ressources, planet, dt);
 		updateCamera(currentMode, camera, character, controls);
 
 		if (proximityManager && character && character.charPos) {

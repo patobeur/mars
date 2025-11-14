@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 export class Ressources {
 	constructor(R, scene, planet) {
-		this.cubes = [];
+		this.ressources = [];
 		this.scene = scene;
 		this.planet = planet;
 		this.R = R;
@@ -14,8 +14,8 @@ export class Ressources {
 		};
 	}
 
-	get_cubes = () => {
-		return this.cubes;
+	get_ressources = () => {
+		return this.ressources;
 	};
 
 	addRessources = (n, type) => {
@@ -24,8 +24,8 @@ export class Ressources {
 			color = this.types[type].color;
 		} else return;
 
-		const cubeMat = new THREE.MeshStandardMaterial({ color: color });
-		const cubeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+		const ressourceMat = new THREE.MeshStandardMaterial({ color: color });
+		const ressourceGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
 		for (let i = 0; i < n; i++) {
 			const phi = Math.acos(2 * Math.random() - 1);
 			const theta = Math.random() * Math.PI * 2;
@@ -33,15 +33,15 @@ export class Ressources {
 			const x = initialHeight * Math.sin(phi) * Math.cos(theta);
 			const y = initialHeight * Math.cos(phi);
 			const z = initialHeight * Math.sin(phi) * Math.sin(theta);
-			const cube = new THREE.Mesh(cubeGeo, cubeMat);
-			cube.position.set(x, y, z);
-			cube.lookAt(this.planet.position);
+			const ressource = new THREE.Mesh(ressourceGeo, ressourceMat);
+			ressource.position.set(x, y, z);
+			ressource.lookAt(this.planet.position);
 			// Add physics properties
-			cube.velocity = new THREE.Vector3();
-			cube.onGround = false;
-			cube.type = type;
-			this.scene.add(cube);
-			this.cubes.push(cube);
+			ressource.velocity = new THREE.Vector3();
+			ressource.onGround = false;
+			ressource.type = type;
+			this.scene.add(ressource);
+			this.ressources.push(ressource);
 		}
 	};
 }
