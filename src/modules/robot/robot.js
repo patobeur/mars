@@ -4,8 +4,11 @@ import { MARS_GRAVITY } from "../gravity/mars.js";
 import { loadRobot } from "./loader.js";
 import { createAnimationManager } from "./animation.js";
 
-export async function createRobot(scene) {
-	const { model, data, animations } = await loadRobot(scene);
+export async function createRobot(scene, loadingManager) {
+	const { model, data, animations } = await loadRobot(
+		scene,
+		loadingManager
+	);
 	console.log(model);
 	console.log(data);
 	console.log(animations);
