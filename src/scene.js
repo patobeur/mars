@@ -24,6 +24,9 @@ export function initScene(loadingManager) {
 	dir.shadow.camera.right = 10;
 	dir.shadow.camera.near = 0.1;
 	dir.shadow.camera.far = 100;
+	dir.shadow.mapSize.width = 2048;
+	dir.shadow.mapSize.height = 2048;
+	dir.shadow.bias = -0.0001;
 	scene.add(dir);
 
 	// --- Textures ---
@@ -44,7 +47,7 @@ export function initScene(loadingManager) {
 	const marsGeometry = new THREE.SphereGeometry(R, 64, 64);
 	const planet = new THREE.Mesh(marsGeometry, marsMaterial);
 	planet.receiveShadow = true;
-	planet.castShadow = false;
+	planet.castShadow = true;
 
 	scene.add(planet);
 
