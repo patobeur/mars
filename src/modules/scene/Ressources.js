@@ -15,19 +15,19 @@ export class Ressources {
 				model: "Rock.glb",
 				color: 0xeaeaea,
 				scale: 0.5,
-				rotation: (0, 0, 1),
+				rotation: [Math.PI, 0, 0],
 			},
 			or: {
 				model: "Rock Medium.glb",
 				color: 0xffff00,
 				scale: 0.2,
-				rotation: (0, 0, 1),
+				rotation: [Math.PI, 0, 0],
 			},
 			carbone: {
 				model: "Rock Medium.glb",
 				color: 0x000000,
 				scale: 0.2,
-				rotation: (0, 0, 1),
+				rotation: [Math.PI, 0, 0],
 			},
 		};
 	}
@@ -69,11 +69,20 @@ export class Ressources {
 			const z = initialHeight * Math.sin(phi) * Math.sin(theta);
 			ressource.position.set(x, y, z);
 			ressource.lookAt(this.planet.position);
+			ressource.rotation.set(
+				typeInfo.rotation[0],
+				typeInfo.rotation[1],
+				typeInfo.rotation[2]
+			);
+			ressource.receiveShadow = true;
+			ressource.castShadow = true;
 			ressource.traverse((child) => {
 				if (child.isMesh) {
 					child.material = new THREE.MeshStandardMaterial({
 						color: typeInfo.color,
 					});
+					child.receiveShadow = true;
+					child.castShadow = true;
 				}
 			});
 			// Add physics properties

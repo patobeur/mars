@@ -16,6 +16,7 @@ export function initScene(loadingManager) {
 
 	scene.add(new THREE.AmbientLight(0xffffff, 0.45));
 	const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+	dir.castShadow = true;
 	dir.position.set(8, 10, 6);
 	scene.add(dir);
 
@@ -36,6 +37,9 @@ export function initScene(loadingManager) {
 	});
 	const marsGeometry = new THREE.SphereGeometry(R, 64, 64);
 	const planet = new THREE.Mesh(marsGeometry, marsMaterial);
+
+	planet.receiveShadow = true;
+
 	scene.add(planet);
 
 	const atmosphere = new THREE.Mesh(
