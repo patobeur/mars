@@ -21,9 +21,9 @@ export function initScene() {
 
 	// --- Textures ---
 	const loader = new THREE.TextureLoader();
-	const color = loader.load("textures/mars/mars_8k_color.jpg");
-	const bump = loader.load("textures/mars/mars_8k_bump.jpg");
-	const normal = loader.load("textures/mars/mars_1k_normal.jpg");
+	const color = loader.load("assets/textures/mars/mars_8k_color.jpg");
+	const bump = loader.load("assets/textures/mars/mars_8k_bump.jpg");
+	const normal = loader.load("assets/textures/mars/mars_1k_normal.jpg");
 
 	// --- Planète ---
 	const marsMaterial = new THREE.MeshStandardMaterial({
