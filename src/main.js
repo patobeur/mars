@@ -116,7 +116,7 @@ async function main() {
 	// --- Animation Loop ---
 	const clock = new THREE.Clock();
 	function tick() {
-		const dt = clock.getDelta();
+		const dt = Math.min(clock.getDelta(), 0.1);
 		updateRobot(character, keys, tangentBasisAt, dt);
 		updateRessources(ressources, planet, dt);
 		updateCamera(currentMode, camera, character, controls);
