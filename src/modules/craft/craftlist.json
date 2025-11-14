@@ -1,0 +1,21 @@
+{
+	"craftsByName": [],
+	"crafts": [
+		{
+			"name": "Appliance plug",
+			"dependency": false,
+			"folder": "assets/structures/",
+			"model": "Appliance plug.glb",
+			"needs": [
+				{
+					"name": "or",
+					"quantity": 20
+				},
+				{
+					"name": "astate",
+					"quantity": 20
+				}
+			]
+		}
+	]
+}
