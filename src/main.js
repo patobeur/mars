@@ -20,7 +20,7 @@ import { ProximityManager } from "./modules/utils/ProximityManager.js";
 import { createLoadingManager } from "./loadingManager.js";
 
 async function main() {
-	const loadingManager = createLoadingManager(initGame);
+	const loadingManager = createLoadingManager(() => {});
 	const renderer = new THREE.WebGLRenderer({ antialias: true });
 	const consoleContainer = document.getElementById("console");
 	const keys = new Set();
@@ -35,11 +35,6 @@ async function main() {
 		currentMode,
 		updateUI,
 		updateNavbar;
-
-	function initGame() {
-		Console.addMessage("All assets loaded, starting the game!");
-		tick();
-	}
 
 	async function setup() {
 		// --- Renderer ---
@@ -112,6 +107,10 @@ async function main() {
 
 		// --- Tests ---
 		setupTests(renderer, scene, camera, planet, controls);
+
+		// --- Start Animation Loop ---
+		Console.addMessage("All assets loaded, starting the game!");
+		tick();
 	}
 
 	// --- Animation Loop ---
