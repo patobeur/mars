@@ -78,3 +78,15 @@ canvas {
 .muted {
 	color: #9aa4d3;
 }
+
+#proximity-message {
+	position: absolute;
+	top: 45px;
+	left: 50%;
+	transform: translateX(-50%);
+	background-color: rgba(0, 0, 0, 0.7);
+	color: white;
+	padding: 10px 20px;
+	border-radius: 5px;
+	font-family: sans-serif;
+}

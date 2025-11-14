@@ -16,6 +16,7 @@ import {
 import { initUI, initDiag, setupTests } from "./ui.js";
 import Console from "./modules/console/console.js";
 import { initNavbar } from "./modules/navbar/navbar.js";
+import { ProximityManager } from "./modules/utils/ProximityManager.js";
 
 async function main() {
 	// --- Renderer ---
@@ -37,6 +38,9 @@ async function main() {
 	// --- Character (loaded asynchronously) ---
 	const character = await createRobot(scene);
 	Console.addMessage("Robot loaded successfully!");
+
+	// --- Proximity Manager ---
+	const proximityManager = new ProximityManager(character, cubes);
 
 	// --- Controls ---
 	const controls = createControls(camera, renderer);
@@ -86,6 +90,10 @@ async function main() {
 		updateRobot(character, keys, tangentBasisAt, dt);
 		updateCubes(cubes, planet, dt);
 		updateCamera(currentMode, camera, character, controls);
+
+		if (proximityManager && character && character.charPos) {
+			proximityManager.update();
+		}
 		renderer.render(scene, camera);
 		requestAnimationFrame(tick);
 	}
