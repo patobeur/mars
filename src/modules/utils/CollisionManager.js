@@ -33,20 +33,23 @@ export class CollisionManager {
     const charSphere = new THREE.Sphere(charCenter, charRadius);
 
     let adjustedMovement = movementVector.clone();
-    const futureCharSphere = charSphere.clone().translate(adjustedMovement);
 
     for (const collidableSphere of this.collidableSpheres) {
+      const futureCharSphere = charSphere.clone().translate(adjustedMovement);
+
       if (futureCharSphere.intersectsSphere(collidableSphere)) {
-        const penetrationVector = new THREE.Vector3()
+        const collisionNormal = new THREE.Vector3()
             .subVectors(futureCharSphere.center, collidableSphere.center)
             .normalize();
 
-        const penetrationDepth = futureCharSphere.radius + collidableSphere.radius - futureCharSphere.center.distanceTo(collidableSphere.center);
+        // Project the movement vector onto the collision normal
+        const penetration = adjustedMovement.dot(collisionNormal);
 
-        const adjustment = penetrationVector.multiplyScalar(penetrationDepth);
-        adjustedMovement.add(adjustment);
-
-        futureCharSphere.center.add(adjustment);
+        // If the movement is into the sphere, adjust it to slide along the surface
+        if (penetration < 0) {
+            const slideVector = collisionNormal.multiplyScalar(penetration);
+            adjustedMovement.sub(slideVector);
+        }
       }
     }
 
