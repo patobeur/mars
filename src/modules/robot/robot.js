@@ -97,9 +97,13 @@ export function updateRobot(character, keys, tangentBasisAt, dt, collisionManage
 	let currentAction = "Idle";
 
 	if (charState.onGround) {
-		const charRight = new THREE.Vector3().crossVectors(n0, charForward);
-		const collisionOrigin = charPos.clone().addScaledVector(charForward, 0.5);
+		// --- Collision Detection Origin ---
+		// We lift the origin of the ray slightly off the ground to avoid immediate collision with the floor.
+		const collisionOrigin = charPos.clone().addScaledVector(n0, 0.2);
 
+		const charRight = new THREE.Vector3().crossVectors(n0, charForward);
+
+		// --- Rotational Collision ---
 		if (keys.has("q")) {
 			const collision = collisionManager.checkCollision(
 				collisionOrigin,
@@ -120,13 +124,15 @@ export function updateRobot(character, keys, tangentBasisAt, dt, collisionManage
 				charForward.applyAxisAngle(n0, -rotSpeed);
 			}
 		}
+
+		// --- Movement Collision ---
 		if (keys.has("z") || keys.has("s")) {
 			const moveDirection = keys.has("z") ? 1 : -1;
 			const direction = charForward.clone().multiplyScalar(moveDirection);
 			const collision = collisionManager.checkCollision(
-				charPos,
+				collisionOrigin,
 				direction,
-				speed * dt
+				speed * dt + 0.1 // Add a small buffer to the distance
 			);
 			if (!collision) {
 				charPos.addScaledVector(direction, speed * dt);
