@@ -5,13 +5,10 @@ import { loadRobot } from "./loader.js";
 import { createAnimationManager } from "./animation.js";
 
 export async function createRobot(scene, loadingManager) {
-	const { model, data, animations } = await loadRobot(
-		scene,
-		loadingManager
-	);
-	console.log(model);
-	console.log(data);
-	console.log(animations);
+	const { model, data, animations } = await loadRobot(scene, loadingManager);
+	// console.log(model);
+	// console.log(data);
+	// console.log(animations);
 	const charGroup = new THREE.Group();
 	charGroup.add(model);
 	scene.add(charGroup);

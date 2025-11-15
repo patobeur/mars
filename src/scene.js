@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { R } from "./config.js";
 import { Ressources } from "./modules/scene/Ressources.js";
+import { Structures } from "./modules/model/Structures.js";
 
 export function initScene(loadingManager) {
 	const scene = new THREE.Scene();
@@ -97,9 +98,17 @@ export function initScene(loadingManager) {
 	ressourcesManager.addRessources(200, "or");
 	ressourcesManager.addRessources(200, "carbone");
 
+	const structuresManager = new Structures(R, scene, planet, loadingManager);
+	structuresManager.addStructures(10, "habitat");
+	structuresManager.addStructures(10, "command");
+	structuresManager.addStructures(10, "cupola");
+
 	const ressources = ressourcesManager.get_ressources();
+	const structures = structuresManager.get_structures();
 	console.log(ressources);
-	return { scene, camera, planet, ressources, dir };
+	console.log(structures);
+
+	return { scene, camera, planet, ressources, structures, dir };
 }
 
 export function updateRessources(ressources, planet, dt) {

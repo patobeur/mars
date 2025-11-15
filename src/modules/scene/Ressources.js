@@ -49,7 +49,7 @@ export class Ressources {
 					typeInfo.scale,
 					typeInfo.scale
 				);
-				console.log("gltf.scene", gltf.scene);
+				//console.log("gltf.scene", gltf.scene);
 				this.models[type] = gltf.scene;
 				this.spawnRessources(n, type, gltf.scene);
 			});

@@ -27,6 +27,7 @@ async function main() {
 
 	let character,
 		ressources,
+		structures,
 		planet,
 		scene,
 		camera,
@@ -54,6 +55,7 @@ async function main() {
 		camera = sceneData.camera;
 		planet = sceneData.planet;
 		ressources = sceneData.ressources;
+		structures = sceneData.structures;
 		dirLight = sceneData.dir;
 		Console.addMessage("Scene initialized");
 		Console.addMessage("Loading robot model...");
@@ -125,7 +127,9 @@ async function main() {
 		updateCamera(currentMode, camera, character, controls);
 
 		if (dirLight && character && character.charPos) {
-			dirLight.position.copy(character.charPos).add(new THREE.Vector3(8, 10, 6));
+			dirLight.position
+				.copy(character.charPos)
+				.add(new THREE.Vector3(8, 10, 6));
 			dirLight.target.position.copy(character.charPos);
 		}
 
