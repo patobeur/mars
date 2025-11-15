@@ -47,7 +47,7 @@ export async function createRobot(scene, loadingManager) {
 	};
 }
 
-export function updateRobot(character, keys, tangentBasisAt, dt) {
+export function updateRobot(character, keys, tangentBasisAt, dt, collisionManager) {
 	const {
 		charPos,
 		charForward,
@@ -67,7 +67,19 @@ export function updateRobot(character, keys, tangentBasisAt, dt) {
 	charVelocity.addScaledVector(gravityDirection, dt);
 
 	// Update position with velocity
-	charPos.addScaledVector(charVelocity, dt);
+	const moveDirection = charVelocity.clone().normalize();
+	const moveDistance = charVelocity.length() * dt;
+	const collision = collisionManager.checkCollision(
+		charPos,
+		moveDirection,
+		moveDistance
+	);
+
+	if (collision) {
+		charVelocity.set(0, 0, 0);
+	} else {
+		charPos.addScaledVector(charVelocity, dt);
+	}
 
 	// Ground collision and state update
 	const distanceToCenter = charPos.length();
@@ -85,19 +97,48 @@ export function updateRobot(character, keys, tangentBasisAt, dt) {
 	let currentAction = "Idle";
 
 	if (charState.onGround) {
-		if (keys.has("q")) charForward.applyAxisAngle(n0, +rotSpeed);
-		if (keys.has("d")) charForward.applyAxisAngle(n0, -rotSpeed);
+		const charRight = new THREE.Vector3().crossVectors(n0, charForward);
+		const collisionOrigin = charPos.clone().addScaledVector(charForward, 0.5);
+
+		if (keys.has("q")) {
+			const collision = collisionManager.checkCollision(
+				collisionOrigin,
+				charRight.clone().negate(),
+				0.5
+			);
+			if (!collision) {
+				charForward.applyAxisAngle(n0, +rotSpeed);
+			}
+		}
+		if (keys.has("d")) {
+			const collision = collisionManager.checkCollision(
+				collisionOrigin,
+				charRight,
+				0.5
+			);
+			if (!collision) {
+				charForward.applyAxisAngle(n0, -rotSpeed);
+			}
+		}
 		if (keys.has("z") || keys.has("s")) {
 			const moveDirection = keys.has("z") ? 1 : -1;
-			charPos.addScaledVector(charForward, speed * moveDirection);
+			const direction = charForward.clone().multiplyScalar(moveDirection);
+			const collision = collisionManager.checkCollision(
+				charPos,
+				direction,
+				speed * dt
+			);
+			if (!collision) {
+				charPos.addScaledVector(direction, speed * dt);
+			}
 			currentAction = "Walking";
 		}
-		charPos.normalize().multiplyScalar(R);
 		if (keys.has(" ")) {
 			charVelocity.addScaledVector(n0, 3.0);
 			charState.onGround = false;
 			currentAction = "Jump";
 		}
+		charPos.normalize().multiplyScalar(R);
 	} else {
 		currentAction = "Jump";
 	}
