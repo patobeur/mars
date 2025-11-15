@@ -15,19 +15,19 @@ export class Ressources {
 				model: "Rock.glb",
 				color: 0xeaeaea,
 				scale: 0.5,
-				rotation: [Math.PI, 0, 0],
+				rotation: [0, 0, Math.PI],
 			},
 			or: {
 				model: "Rock Medium.glb",
 				color: 0xffff00,
 				scale: 0.2,
-				rotation: [Math.PI, 0, 0],
+				rotation: [0, 0, Math.PI],
 			},
 			carbone: {
 				model: "Rock Medium.glb",
 				color: 0x000000,
 				scale: 0.2,
-				rotation: [Math.PI, 0, 0],
+				rotation: [0, 0, Math.PI],
 			},
 		};
 	}
@@ -44,14 +44,16 @@ export class Ressources {
 			this.spawnRessources(n, type, this.models[type]);
 		} else {
 			this.loader.load(this.ressourcesPath + typeInfo.model, (gltf) => {
-				gltf.scene.scale.set(
+				let CurrentModel = gltf.scene.children[0];
+				console.log("Current Ressource", CurrentModel);
+				CurrentModel.scale.set(
 					typeInfo.scale,
 					typeInfo.scale,
 					typeInfo.scale
 				);
 				//console.log("gltf.scene", gltf.scene);
-				this.models[type] = gltf.scene;
-				this.spawnRessources(n, type, gltf.scene);
+				this.models[type] = CurrentModel;
+				this.spawnRessources(n, type, CurrentModel);
 			});
 		}
 	};

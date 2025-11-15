@@ -19,12 +19,12 @@ export class Structures {
 			command: {
 				model: "Command pod.glb",
 				scale: 0.3,
-				rotation: [Math.PI / 2, 0, 0],
+				rotation: [0, 0, Math.PI / 2],
 			},
 			cupola: {
 				model: "Cupola module.glb",
 				scale: 0.3,
-				rotation: [Math.PI / 2, , 0, 0],
+				rotation: [0, 0, Math.PI / 2],
 			},
 		};
 	}
@@ -42,7 +42,7 @@ export class Structures {
 		} else {
 			this.loader.load(this.structuresPath + typeInfo.model, (gltf) => {
 				let CurrentModel = gltf.scene.children[0];
-				console.log("CurrentModel", CurrentModel);
+				console.log("Current Structure", CurrentModel);
 				CurrentModel.scale.set(
 					typeInfo.scale,
 					typeInfo.scale,
