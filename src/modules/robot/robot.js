@@ -81,9 +81,11 @@ export function updateRobot(character, keys, tangentBasisAt, dt, collisionManage
 		currentAction = "Jump";
 	}
 
-	// 2. Apply gravity to velocity
-	const gravityDirection = n0.clone().multiplyScalar(MARS_GRAVITY);
-	charVelocity.addScaledVector(gravityDirection, dt);
+	// 2. Apply gravity to velocity only when the character is not on the ground
+	if (!charState.onGround) {
+		const gravityDirection = n0.clone().multiplyScalar(MARS_GRAVITY);
+		charVelocity.addScaledVector(gravityDirection, dt);
+	}
 
 	// 3. Combine control and physics (velocity) movements
 	totalMovement.add(controlMovement);

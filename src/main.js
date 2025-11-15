@@ -21,7 +21,6 @@ import { CollisionManager } from "./modules/utils/CollisionManager.js";
 import { createLoadingManager } from "./loadingManager.js";
 
 async function main() {
-	const loadingManager = createLoadingManager(() => {});
 	const renderer = new THREE.WebGLRenderer({ antialias: true });
 	const consoleContainer = document.getElementById("console");
 	const keys = new Set();
@@ -47,6 +46,20 @@ async function main() {
 		renderer.shadowMap.enabled = true;
 		document.body.appendChild(renderer.domElement);
 
+		// --- Managers initialisation post-loading ---
+		const loadingManager = createLoadingManager(() => {
+			console.log("All assets loaded, initializing managers...");
+
+			// --- Proximity Manager ---
+			proximityManager = new ProximityManager(character, ressources);
+
+			// --- Collision Manager ---
+			const collidableObjects = [...ressources, ...structures];
+			collisionManager = new CollisionManager(character, collidableObjects);
+
+			Console.addMessage("Managers initialized!");
+		});
+
 		// --- Console ---
 		Console.init(consoleContainer);
 		Console.addMessage("Welcome!");
@@ -65,13 +78,6 @@ async function main() {
 		// --- Character (loaded asynchronously) ---
 		character = await createRobot(scene, loadingManager);
 		Console.addMessage("Robot loaded successfully!");
-
-		// --- Proximity Manager ---
-		proximityManager = new ProximityManager(character, ressources);
-
-		// --- Collision Manager ---
-		const collidableObjects = [...ressources, ...structures];
-		collisionManager = new CollisionManager(character, collidableObjects);
 
 		// --- Controls ---
 		controls = createControls(camera, renderer);
