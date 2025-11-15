@@ -99,9 +99,9 @@ export function initScene(loadingManager) {
 	ressourcesManager.addRessources(200, "carbone");
 
 	const structuresManager = new Structures(R, scene, planet, loadingManager);
-	structuresManager.addStructures(10, "habitat");
-	structuresManager.addStructures(10, "command");
-	structuresManager.addStructures(10, "cupola");
+	structuresManager.addStructures(60, "habitat");
+	structuresManager.addStructures(60, "command");
+	structuresManager.addStructures(60, "cupola");
 
 	const ressources = ressourcesManager.get_ressources();
 	const structures = structuresManager.get_structures();

@@ -1,5 +1,5 @@
 // --- Config ---
-export const R = 20; // Rayon de la planète
+export const R = 50; // Rayon de la planète
 
 export const config = {
 	player: { glb: "assets/Animated_Base_Character.glb" },

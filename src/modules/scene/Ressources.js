@@ -16,18 +16,21 @@ export class Ressources {
 				color: 0xeaeaea,
 				scale: 0.5,
 				rotation: [0, 0, Math.PI],
+				y_offset: 0,
 			},
 			or: {
 				model: "Rock Medium.glb",
 				color: 0xffff00,
 				scale: 0.2,
 				rotation: [0, 0, Math.PI],
+				y_offset: 0,
 			},
 			carbone: {
 				model: "Rock Medium.glb",
 				color: 0x000000,
 				scale: 0.2,
 				rotation: [0, 0, Math.PI],
+				y_offset: 0,
 			},
 		};
 	}

@@ -13,21 +13,55 @@ export class Structures {
 		this.types = {
 			habitat: {
 				model: "Geodesic Dome.glb",
-				scale: 0.3,
+				scale: 0.5,
 				rotation: [0, 0, Math.PI / 2],
+				y_offset: -0.1,
+				trigger_entry: false,
 			},
 			command: {
 				model: "Command pod.glb",
-				scale: 0.3,
+				scale: 0.5,
 				rotation: [0, 0, Math.PI / 2],
+				y_offset: -0.1,
+				trigger_entry: true,
 			},
 			cupola: {
 				model: "Cupola module.glb",
-				scale: 0.3,
+				scale: 0.5,
 				rotation: [0, 0, Math.PI / 2],
+				y_offset: -0.1,
+				trigger_entry: true,
 			},
 		};
 	}
+
+	add_contact_trigger = (model) => {
+		// Géométrie de la porte : 1 (X) x 2 (Y) x 0.25 (Z)
+		const doorGeometry = new THREE.BoxGeometry(1, 2, 0.25);
+
+		// Matériau (bois marron par exemple)
+		const doorMaterial = new THREE.MeshStandardMaterial({
+			color: 0x00ffcc, // couleur de base (genre néon turquoise)
+			emissive: 0x00ffcc, // couleur "fluo"
+			emissiveIntensity: 0.7, // augmente si tu veux plus de glow
+			metalness: 0.1,
+			roughness: 0.2,
+			transparent: true,
+			opacity: 0.3, // 0 = invisible, 1 = opaque
+		});
+
+		// Mesh de la porte
+		const door = new THREE.Mesh(doorGeometry, doorMaterial);
+
+		// Optionnel : ombres
+		door.castShadow = true;
+		door.receiveShadow = true;
+
+		// Positionner la porte :
+		// si ton sol est à y = 0, on met la porte centrée à y = 1
+		door.position.set(0, 0.5, model.x_min); // x, y, z
+		model.add(door);
+	};
 
 	get_structures = () => {
 		return this.structures;
@@ -43,6 +77,7 @@ export class Structures {
 			this.loader.load(this.structuresPath + typeInfo.model, (gltf) => {
 				let CurrentModel = gltf.scene.children[0];
 				console.log("Current Structure", CurrentModel);
+
 				CurrentModel.scale.set(
 					typeInfo.scale,
 					typeInfo.scale,
@@ -50,10 +85,11 @@ export class Structures {
 				);
 
 				const box = new THREE.Box3().setFromObject(CurrentModel);
-				const height = box.max.y - box.min.y;
-				console.log(box.max.y, "-", box.min.y);
-				CurrentModel.height = height / 2;
 
+				CurrentModel.y_min = box.min.y;
+				CurrentModel.x_min = box.max.x - box.min.x;
+
+				if (typeInfo.trigger_entry) this.add_contact_trigger(CurrentModel);
 				this.models[type] = CurrentModel;
 				this.spawnStructures(n, type, CurrentModel);
 			});
@@ -67,7 +103,7 @@ export class Structures {
 			const structure = model.clone();
 			const phi = Math.acos(2 * Math.random() - 1);
 			const theta = Math.random() * Math.PI * 2;
-			const initialHeight = this.R + model.height / 2;
+			const initialHeight = this.R - model.y_min + (typeInfo.y_offset || 0);
 			const x = initialHeight * Math.sin(phi) * Math.cos(theta);
 			const y = initialHeight * Math.cos(phi);
 			const z = initialHeight * Math.sin(phi) * Math.sin(theta);
