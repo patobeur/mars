@@ -71,7 +71,11 @@ async function main() {
 
 		// Collision Manager ---
 		const collidableObjects = [...ressources, ...structures];
-		collisionManager = new CollisionManager(character, collidableObjects);
+		collisionManager = new CollisionManager(
+			character,
+			collidableObjects,
+			scene
+		);
 
 		// --- Controls ---
 		controls = createControls(camera, renderer);
@@ -128,7 +132,7 @@ async function main() {
 	const clock = new THREE.Clock();
 	function tick() {
 		const dt = Math.min(clock.getDelta(), 0.1);
-		updateRobot(character, keys, tangentBasisAt, dt, collisionManager);
+		updateRobot(character, keys, tangentBasisAt, dt, collisionManager, scene);
 		updateRessources(ressources, planet, dt);
 		updateCamera(currentMode, camera, character, controls, collisionManager);
 

@@ -72,16 +72,32 @@ export function updateCamera(
 	const forward = charForward;
 
 	if (mode === MODES.TPS) {
-		const camPos = charPos
+		const idealCamPos = charPos
 			.clone()
 			.addScaledVector(forward, -1.6)
 			.addScaledVector(n, 0.7);
-		const collision = collisionManager.checkCameraCollision(camPos, charPos);
+
+		const camDir = idealCamPos.clone().sub(charPos).normalize();
+		const camDist = charPos.distanceTo(idealCamPos);
+
+		// The origin of the ray is slightly above the character's feet
+		const rayOrigin = charPos.clone().addScaledVector(n, 0.2);
+
+		const collision = collisionManager.checkCollision(
+			rayOrigin,
+			camDir,
+			camDist,
+			true,
+			"camera"
+		);
+
+		let targetPos = idealCamPos;
 		if (collision) {
-			camera.position.copy(collision.point);
-		} else {
-			camera.position.lerp(camPos, 0.25);
+			// Move camera to the collision point, slightly offset
+			targetPos = collision.point.addScaledVector(camDir, -0.1);
 		}
+
+		camera.position.lerp(targetPos, 0.25);
 		camera.up.copy(n);
 		camera.lookAt(charPos.clone().addScaledVector(forward, 1.2));
 	} else if (mode === MODES.FPS) {
