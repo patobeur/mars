@@ -17,7 +17,7 @@ export class CollisionManager {
    * @returns {THREE.Vector3} The adjusted movement vector after collision resolution.
    */
   getAdjustedMovement(movementVector) {
-    if (movementVector.lengthSq() === 0) {
+    if (movementVector.lengthSq() === 0 || this.collidableBoxes.length === 0) {
       return movementVector;
     }
 
