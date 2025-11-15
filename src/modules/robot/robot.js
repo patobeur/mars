@@ -92,7 +92,10 @@ export function updateRobot(character, keys, tangentBasisAt, dt, collisionManage
 	totalMovement.addScaledVector(charVelocity, dt);
 
 	// 4. Get collision-adjusted movement
-	const adjustedMovement = collisionManager.getAdjustedMovement(totalMovement);
+	let adjustedMovement = totalMovement;
+	if (collisionManager) {
+		adjustedMovement = collisionManager.getAdjustedMovement(totalMovement);
+	}
 	charPos.add(adjustedMovement);
 
 	// 5. Ground collision and state update
