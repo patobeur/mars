@@ -60,7 +60,13 @@ export function setMode(mode, controls, camera, character) {
 	return mode;
 }
 
-export function updateCamera(mode, camera, character, controls) {
+export function updateCamera(
+	mode,
+	camera,
+	character,
+	controls,
+	collisionManager
+) {
 	const { charPos, charForward } = character;
 	const { n } = tangentBasisAt(charPos);
 	const forward = charForward;
@@ -70,7 +76,12 @@ export function updateCamera(mode, camera, character, controls) {
 			.clone()
 			.addScaledVector(forward, -1.6)
 			.addScaledVector(n, 0.7);
-		camera.position.lerp(camPos, 0.25);
+		const collision = collisionManager.checkCameraCollision(camPos, charPos);
+		if (collision) {
+			camera.position.copy(collision.point);
+		} else {
+			camera.position.lerp(camPos, 0.25);
+		}
 		camera.up.copy(n);
 		camera.lookAt(charPos.clone().addScaledVector(forward, 1.2));
 	} else if (mode === MODES.FPS) {
