@@ -131,3 +131,12 @@ export function updateRobot(character, keys, tangentBasisAt, dt, collisionManage
 	}
 	animationManager.update(dt);
 }
+
+export function tangentBasisAt(pos) {
+	const n = pos.clone().normalize();
+	let ref = new THREE.Vector3(0, 1, 0);
+	if (Math.abs(n.dot(ref)) > 0.95) ref = new THREE.Vector3(1, 0, 0);
+	const t1 = new THREE.Vector3().crossVectors(ref, n).normalize();
+	const t2 = new THREE.Vector3().crossVectors(n, t1).normalize();
+	return { n, t1, t2 };
+}
