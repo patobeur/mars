@@ -110,18 +110,17 @@ export function updateRobot(character, keys, tangentBasisAt, dt, collisionManage
 
     // Phase 3: Ground constraint
     const distanceToCenter = charPos.length();
-    const justLanded = !charState.onGround && distanceToCenter <= R;
 
     if (distanceToCenter <= R) {
         charPos.normalize().multiplyScalar(R);
         charState.onGround = true;
 
-        if (justLanded) {
-            // Project velocity onto the tangent plane to stop downward/upward motion
-            const surfaceNormal = charPos.clone().normalize();
-            const projection = charVelocity.dot(surfaceNormal);
-            charVelocity.sub(surfaceNormal.multiplyScalar(projection));
-        }
+        // Always project velocity onto the tangent plane when on the ground
+        // to prevent accumulation of vertical velocity from micro-bounces.
+        const surfaceNormal = charPos.clone().normalize();
+        const projection = charVelocity.dot(surfaceNormal);
+        charVelocity.sub(surfaceNormal.multiplyScalar(projection));
+
     } else {
         charState.onGround = false;
     }
