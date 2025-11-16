@@ -66,6 +66,18 @@ canvas {
 .hidden {
 	display: none;
 }
+
+#collision-info {
+	position: absolute;
+	bottom: 10px;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 8px 16px;
+	background-color: rgba(0, 0, 0, 0.5);
+	color: white;
+	border-radius: 5px;
+	font-family: monospace;
+}
 #tests {
 	margin-top: 6px;
 }

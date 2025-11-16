@@ -10,14 +10,15 @@ export class CollisionManager {
     getAdjustedMovement(movementVector) {
         const charPos = this.character.charPos;
         let futurePos = charPos.clone().add(movementVector);
+        let collidingObject = null;
 
         for (const object of this.collidableObjects) {
             const distance = futurePos.distanceTo(object.position);
 
             if (distance < this.collisionThreshold) {
+                collidingObject = object; // Store the colliding object
                 const collisionNormal = futurePos.clone().sub(object.position);
 
-                // CRITICAL FIX: Prevent NaN error by checking for zero vector before normalizing.
                 if (collisionNormal.lengthSq() > 0) {
                     collisionNormal.normalize();
 
@@ -28,6 +29,6 @@ export class CollisionManager {
         }
 
         const adjustedMovement = futurePos.sub(charPos);
-        return adjustedMovement;
+        return { adjustedMovement, collidingObject };
     }
 }

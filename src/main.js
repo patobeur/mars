@@ -13,7 +13,7 @@ import {
 	handleCameraZoom,
 	handleCameraKeyboard,
 } from "./camera.js";
-import { initUI, initDiag, setupTests } from "./ui.js";
+import { initUI, initDiag, setupTests, updateCollisionUI } from "./ui.js";
 import Console from "./modules/console/console.js";
 import { initNavbar } from "./modules/navbar/navbar.js";
 import { ProximityManager } from "./modules/utils/ProximityManager.js";
@@ -127,7 +127,8 @@ async function main() {
 	const clock = new THREE.Clock();
 	function tick() {
 		const dt = Math.min(clock.getDelta(), 0.1);
-		updateRobot(character, keys, tangentBasisAt, dt, collisionManager);
+		const { collidingObject } = updateRobot(character, keys, tangentBasisAt, dt, collisionManager);
+        updateCollisionUI(collidingObject);
 		updateRessources(ressources, planet, dt);
 		updateCamera(currentMode, camera, character, controls);
 

@@ -87,3 +87,15 @@ export function setupTests(renderer, scene, camera, planet, controls) {
 	// pourrait être déclenché d'une autre manière si nécessaire, par exemple depuis la console.
 	// Pour l'instant, la fonction est conservée mais n'est plus liée à un événement de clic.
 }
+
+export function updateCollisionUI(collidingObject) {
+    const collisionDiv = document.getElementById("collision-info");
+    if (!collisionDiv) return;
+
+    if (collidingObject) {
+        collisionDiv.classList.remove("hidden");
+        collisionDiv.textContent = `Collision avec : ${collidingObject.name}`;
+    } else {
+        collisionDiv.classList.add("hidden");
+    }
+}

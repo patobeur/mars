@@ -86,19 +86,16 @@ export function updateRobot(character, keys, tangentBasisAt, dt, collisionManage
 	}
 
 	// 2. Get collision-adjusted movement
-	const adjustedMovement = collisionManager.getAdjustedMovement(movementVector);
+	const { adjustedMovement, collidingObject } = collisionManager.getAdjustedMovement(movementVector);
 	let futurePos = charPos.clone().add(adjustedMovement);
 
 	// 3. Apply ground constraint and update state
 	const distanceToCenter = futurePos.length();
 	if (distanceToCenter <= R) {
 		futurePos.normalize().multiplyScalar(R);
-		// Project velocity onto the tangent plane to stop downward motion
-        const surfaceNormal = futurePos.clone().normalize();
+		const surfaceNormal = futurePos.clone().normalize();
         const projection = charVelocity.dot(surfaceNormal);
-        if (projection < 0) {
-            charVelocity.sub(surfaceNormal.multiplyScalar(projection));
-        }
+        charVelocity.sub(surfaceNormal.multiplyScalar(projection));
 		charState.onGround = true;
         if (currentAction === 'Idle' && !keys.has(" ")) {
             currentAction = charState.action; // Persist walking if still moving
@@ -130,6 +127,8 @@ export function updateRobot(character, keys, tangentBasisAt, dt, collisionManage
 		charState.action = currentAction;
 	}
 	animationManager.update(dt);
+
+    return { collidingObject };
 }
 
 export function tangentBasisAt(pos) {
