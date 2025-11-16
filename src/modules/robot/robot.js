@@ -110,9 +110,10 @@ export function updateRobot(character, keys, tangentBasisAt, dt, collisionManage
 
     // Phase 3: Ground constraint
     const distanceToCenter = charPos.length();
+    const groundThreshold = 0.1;
 
-    if (distanceToCenter <= R) {
-        charPos.normalize().multiplyScalar(R);
+    if (distanceToCenter <= R + groundThreshold) {
+        charPos.normalize().multiplyScalar(R); // Snap to the ground to prevent floating
         charState.onGround = true;
 
         // Always project velocity onto the tangent plane when on the ground
