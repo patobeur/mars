@@ -110,8 +110,9 @@ export function updateRobot(character, keys, tangentBasisAt, dt, collisionManage
 
     // Phase 3: Ground constraint
     const distanceToCenter = charPos.length();
-    const groundThreshold = 0.1;
+    const groundThreshold = 1.5; // Increased threshold to fix ground detection
 
+    const onGroundBefore = charState.onGround;
     if (distanceToCenter <= R + groundThreshold) {
         charPos.normalize().multiplyScalar(R); // Snap to the ground to prevent floating
         charState.onGround = true;
