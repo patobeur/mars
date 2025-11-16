@@ -17,7 +17,7 @@ import { initUI, initDiag, setupTests, updateCollisionUI } from "./ui.js";
 import Console from "./modules/console/console.js";
 import { initNavbar } from "./modules/navbar/navbar.js";
 import { ProximityManager } from "./modules/utils/ProximityManager.js";
-import { CollisionManager } from "./modules/utils/CollisionManager.js";
+import CollisionManager from "./modules/utils/CollisionManager.js";
 import { createLoadingManager } from "./loadingManager.js";
 
 async function main() {
@@ -70,7 +70,9 @@ async function main() {
 		proximityManager = new ProximityManager(character, ressources);
 
 		// --- Collision Manager ---
-		collisionManager = new CollisionManager(character, ressources);
+		const collidableObjects = [...ressources.map(r => r.mesh), ...structures.map(s => s.mesh)];
+		collisionManager = new CollisionManager(character, collidableObjects);
+
 
 		// --- Controls ---
 		controls = createControls(camera, renderer);
@@ -127,8 +129,8 @@ async function main() {
 	const clock = new THREE.Clock();
 	function tick() {
 		const dt = Math.min(clock.getDelta(), 0.1);
-		const { collidingObject } = updateRobot(character, keys, tangentBasisAt, dt, collisionManager);
-        updateCollisionUI(collidingObject);
+		const { collisionObject } = updateRobot(character, keys, tangentBasisAt, dt, collisionManager);
+        updateCollisionUI(collisionObject);
 		updateRessources(ressources, planet, dt);
 		updateCamera(currentMode, camera, character, controls);
 

@@ -1,4 +1,3 @@
-
 import * as THREE from "three";
 import { R } from "../../config.js";
 import { MARS_GRAVITY } from "../gravity/mars.js";
@@ -7,6 +6,9 @@ import { createAnimationManager } from "./animation.js";
 
 export async function createRobot(scene, loadingManager) {
 	const { model, data, animations } = await loadRobot(scene, loadingManager);
+	// console.log(model);
+	// console.log(data);
+	// console.log(animations);
 	const charGroup = new THREE.Group();
 	charGroup.add(model);
 	scene.add(charGroup);
@@ -15,7 +17,7 @@ export async function createRobot(scene, loadingManager) {
 	let charVelocity = new THREE.Vector3();
 	let charState = { onGround: false, action: "Idle" };
 	let charForward = new THREE.Vector3();
-	const { speed, rotSpeed } = data;
+	const { speed, rotSpeed, collisionRadius } = data;
 
 	const animationManager = createAnimationManager(model, animations);
 	animationManager.playAnimation("Idle");
@@ -39,113 +41,95 @@ export async function createRobot(scene, loadingManager) {
 		charForward,
 		speed,
 		rotSpeed,
-		charVelocity,
+		collisionRadius,
+		// charVelocity is no longer used
 		charState,
 		animationManager,
 	};
 }
 
 export function updateRobot(character, keys, tangentBasisAt, dt, collisionManager) {
-    const {
-        charPos,
-        charForward,
-        speed,
-        rotSpeed,
-        charGroup,
-        charVelocity,
-        charState,
-        animationManager,
-    } = character;
+	const {
+		charPos,
+		charForward,
+		speed,
+		rotSpeed,
+		charGroup,
+		charState, // Keep for animations
+		animationManager,
+	} = character;
 
-    const n0 = charPos.clone().normalize();
-    let currentAction = "Idle";
-    let playerCollidingObject = null;
-    let physicsCollidingObject = null;
+    let { onGround } = charState;
+    let charVelocity = character.charVelocity || new THREE.Vector3();
+	const n0 = charPos.clone().normalize();
+	let currentAction = "Idle";
+	let desiredMovement = new THREE.Vector3();
 
-    // --- NEW LOGIC ORDER ---
+    // Apply Gravity
+    if (!onGround) {
+        const gravity = n0.clone().multiplyScalar(MARS_GRAVITY * dt);
+        charVelocity.add(gravity);
+    }
+    desiredMovement.add(charVelocity);
 
-    // Phase 1: Physics-based movement (gravity, jumping, velocity)
-    const posBeforePhysics = charPos.clone();
+	// Handle rotation
+	if (keys.has("q")) charForward.applyAxisAngle(n0, +rotSpeed * dt);
+	if (keys.has("d")) charForward.applyAxisAngle(n0, -rotSpeed * dt);
 
-    if (!charState.onGround) {
-        const gravityDirection = charPos.clone().normalize().multiplyScalar(-MARS_GRAVITY);
-        charVelocity.addScaledVector(gravityDirection, dt);
+	// Calculate desired movement based on input
+	if (keys.has("z") || keys.has("s")) {
+		const moveDirection = keys.has("z") ? 1 : -1;
+		const moveVector = charForward.clone().multiplyScalar(speed * moveDirection * dt);
+		desiredMovement.add(moveVector);
+		currentAction = "Walking";
+	}
+
+    // Adjust movement for collisions
+    let collisionObject = null;
+    if (collisionManager) {
+        const collisionResult = collisionManager.adjustMovement(desiredMovement);
+        desiredMovement = collisionResult.adjustedVector;
+        collisionObject = collisionResult.collisionObject;
     }
 
-    if (charState.onGround && keys.has(" ")) {
-        charVelocity.addScaledVector(n0, 4.0); // Jump impulse
-    }
+	// Apply the (potentially adjusted) movement
+    const originalPos = charPos.clone();
+    const newPos = originalPos.add(desiredMovement);
 
-    const physicsMovementIntent = charVelocity.clone().multiplyScalar(dt);
-    const { adjustedMovement: adjustedPhysicsMovement, collidingObject: Fco } = collisionManager.getAdjustedMovement(physicsMovementIntent);
-    const didPhysicsCollide = Fco !== null;
-    charPos.add(adjustedPhysicsMovement);
-    physicsCollidingObject = Fco;
-
-    const actualPhysicsMovement = charPos.clone().sub(posBeforePhysics);
-    if (dt > 0) {
-        charVelocity.copy(actualPhysicsMovement).divideScalar(dt);
+	// Project the new position onto the sphere (snapping to surface)
+    const distanceToCenter = newPos.length();
+    if (distanceToCenter <= R) {
+        newPos.normalize().multiplyScalar(R);
+        charVelocity.set(0, 0, 0); // Stop gravity effect
+        onGround = true;
     } else {
-        charVelocity.set(0, 0, 0);
+        onGround = false;
     }
+    charPos.copy(newPos);
+    character.charVelocity = charVelocity;
+    charState.onGround = onGround;
 
-    // Phase 2: Ground constraint
-    const distanceToCenter = charPos.length();
-    const groundThreshold = 1.5;
+	// --- Animation ---
+	if (charState.action !== currentAction) {
+		animationManager.playAnimation(currentAction);
+		charState.action = currentAction;
+	}
 
-    const onGroundBefore = charState.onGround;
-    if (distanceToCenter <= R + groundThreshold) {
-        charPos.normalize().multiplyScalar(R);
-        charState.onGround = true;
+	// --- Orientation ---
+	// This part ensures the character model stays upright on the sphere
+	const n1 = charPos.clone().normalize();
+	const q = new THREE.Quaternion().setFromUnitVectors(n0, n1);
+	charForward.applyQuaternion(q);
+	charForward.addScaledVector(n1, -charForward.dot(n1)).normalize();
 
-        const surfaceNormal = charPos.clone().normalize();
-        const projection = charVelocity.dot(surfaceNormal);
-        charVelocity.sub(surfaceNormal.multiplyScalar(projection));
-    } else {
-        charState.onGround = false;
-    }
+	const lookAt = charPos.clone().add(charForward);
+	charGroup.position.copy(charPos);
+	charGroup.up.copy(n1);
+	charGroup.lookAt(lookAt);
 
-    // Phase 3: Player-controlled movement (rotation and forward/backward) - APPLIED LAST
-    const playerMovementIntent = new THREE.Vector3();
-    if (charState.onGround) {
-        if (keys.has("q")) charForward.applyAxisAngle(n0, +rotSpeed * dt);
-        if (keys.has("d")) charForward.applyAxisAngle(n0, -rotSpeed * dt);
+	animationManager.update(dt);
 
-        if (keys.has("z") || keys.has("s")) {
-            const moveDirection = keys.has("z") ? 1 : -1;
-            playerMovementIntent.addScaledVector(charForward, speed * moveDirection * dt);
-            currentAction = "Walking";
-        }
-    }
-
-    const { adjustedMovement: adjustedPlayerMovement, collidingObject: pco } = collisionManager.getAdjustedMovement(playerMovementIntent);
-    const didPlayerCollide = pco !== null;
-    charPos.add(adjustedPlayerMovement);
-    playerCollidingObject = pco;
-
-    // Phase 4: Finalize orientation and animation
-    const onGroundAfter = charState.onGround;
-    const n1 = charPos.clone().normalize();
-    const q = new THREE.Quaternion().setFromUnitVectors(n0, n1);
-    charForward.applyQuaternion(q);
-    charForward.addScaledVector(n1, -charForward.dot(n1)).normalize();
-
-    const lookAt = charPos.clone().add(charForward);
-    charGroup.position.copy(charPos);
-    charGroup.up.copy(n1);
-    charGroup.lookAt(lookAt);
-
-    if (!charState.onGround) {
-        currentAction = "Jump";
-    }
-
-    if (charState.action !== currentAction) {
-        animationManager.playAnimation(currentAction);
-        charState.action = currentAction;
-    }
-    animationManager.update(dt);
-
-    return { collidingObject: playerCollidingObject || physicsCollidingObject };
+    return { collisionObject };
 }
 
 export function tangentBasisAt(pos) {

@@ -94,6 +94,14 @@ export class Ressources {
 			ressource.velocity = new THREE.Vector3();
 			ressource.onGround = false;
 			ressource.type = type;
+
+            // Assign collision radius based on type
+            if (type === 'astate') {
+                ressource.userData.collisionRadius = 1.5;
+            } else {
+                ressource.userData.collisionRadius = 0.8;
+            }
+
 			this.scene.add(ressource);
 			this.ressources.push(ressource);
 		}

@@ -1,2 +1,2 @@
 // Mars gravity constant
-export const MARS_GRAVITY = 1.72076;
+export const MARS_GRAVITY = -3.72076;
