@@ -44,10 +44,18 @@ export async function createRobot(scene, loadingManager) {
 		charVelocity,
 		charState,
 		animationManager,
+		debug: {}, // Empty object for debug helpers
 	};
 }
 
-export function updateRobot(character, keys, tangentBasisAt, dt) {
+export function updateRobot(
+	character,
+	keys,
+	tangentBasisAt,
+	dt,
+	collisionManager,
+	scene // Pass scene for debugging
+) {
 	const {
 		charPos,
 		charForward,
@@ -59,54 +67,82 @@ export function updateRobot(character, keys, tangentBasisAt, dt) {
 		animationManager,
 	} = character;
 
-	// Gravity
-	const gravityDirection = charPos
-		.clone()
-		.normalize()
-		.multiplyScalar(MARS_GRAVITY);
-	charVelocity.addScaledVector(gravityDirection, dt);
+	const n0 = charPos.clone().normalize();
+	let currentAction = "Idle";
 
-	// Update position with velocity
-	charPos.addScaledVector(charVelocity, dt);
+	// --- Grounded Movement ---
+	if (charState.onGround) {
+		charVelocity.set(0, 0, 0); // No accumulated velocity on ground
 
-	// Ground collision and state update
+		const collisionOrigin = charPos.clone().addScaledVector(n0, 0.2);
+		const charRight = new THREE.Vector3().crossVectors(n0, charForward);
+
+		// Rotation
+		const rotRayLength = 0.6;
+		const canRotateLeft = !collisionManager.checkCollision(collisionOrigin, charRight.clone().negate(), rotRayLength, true, "rotLeft");
+		const canRotateRight = !collisionManager.checkCollision(collisionOrigin, charRight, rotRayLength, true, "rotRight");
+		if (keys.has("q") && canRotateLeft) charForward.applyAxisAngle(n0, +rotSpeed * dt);
+		if (keys.has("d") && canRotateRight) charForward.applyAxisAngle(n0, -rotSpeed * dt);
+
+		// Forward/Backward Movement
+		const moveRayLength = speed * dt + 0.1;
+		const upwardBias = 0.08;
+		const forwardDir = charForward.clone().addScaledVector(n0, upwardBias).normalize();
+		const backDir = charForward.clone().negate().addScaledVector(n0, upwardBias).normalize();
+
+		const canMoveForward = !collisionManager.checkCollision(collisionOrigin, forwardDir, moveRayLength, true, "moveForward");
+		const canMoveBackward = !collisionManager.checkCollision(collisionOrigin, backDir, moveRayLength, true, "moveBackward");
+
+		let moveVector = new THREE.Vector3();
+		if (keys.has("z") && canMoveForward) {
+			moveVector.add(charForward);
+			currentAction = "Walking";
+		}
+		if (keys.has("s") && canMoveBackward) {
+			moveVector.sub(charForward);
+			currentAction = "Walking";
+		}
+		charPos.addScaledVector(moveVector, speed * dt);
+
+		// Jump
+		if (keys.has(" ")) {
+			charVelocity.addScaledVector(n0, 3.0); // Jump impulse
+			charState.onGround = false;
+			currentAction = "Jump";
+		}
+	}
+
+	// --- Air Movement ---
+	if (!charState.onGround) {
+		const gravity = charPos.clone().normalize().multiplyScalar(MARS_GRAVITY);
+		charVelocity.addScaledVector(gravity, dt);
+		charPos.addScaledVector(charVelocity, dt);
+		currentAction = "Jump";
+	}
+
+	// --- Ground Correction ---
+	// This is the key: move the character, then stick it to the ground.
 	const distanceToCenter = charPos.length();
 	if (distanceToCenter <= R) {
 		charPos.normalize().multiplyScalar(R);
-		if (charVelocity.dot(charPos.clone().normalize()) < 0) {
-			charVelocity.set(0, 0, 0);
+		// If character was moving downwards, stop that velocity.
+		const n = charPos.clone().normalize();
+		const projection = charVelocity.dot(n);
+		if (projection < 0) {
+			charVelocity.addScaledVector(n, -projection);
 		}
 		charState.onGround = true;
 	} else {
 		charState.onGround = false;
 	}
 
-	const n0 = charPos.clone().normalize();
-	let currentAction = "Idle";
-
-	if (charState.onGround) {
-		if (keys.has("q")) charForward.applyAxisAngle(n0, +rotSpeed);
-		if (keys.has("d")) charForward.applyAxisAngle(n0, -rotSpeed);
-		if (keys.has("z") || keys.has("s")) {
-			const moveDirection = keys.has("z") ? 1 : -1;
-			charPos.addScaledVector(charForward, speed * moveDirection);
-			currentAction = "Walking";
-		}
-		charPos.normalize().multiplyScalar(R);
-		if (keys.has(" ")) {
-			charVelocity.addScaledVector(n0, 3.0);
-			charState.onGround = false;
-			currentAction = "Jump";
-		}
-	} else {
-		currentAction = "Jump";
-	}
-
+	// --- Update Animation ---
 	if (charState.action !== currentAction) {
 		animationManager.playAnimation(currentAction);
 		charState.action = currentAction;
 	}
 
+	// --- Update Model Orientation ---
 	const n1 = charPos.clone().normalize();
 	const q = new THREE.Quaternion().setFromUnitVectors(n0, n1);
 	charForward.applyQuaternion(q);
