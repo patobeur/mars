@@ -6,9 +6,6 @@ import { createAnimationManager } from "./animation.js";
 
 export async function createRobot(scene, loadingManager) {
 	const { model, data, animations } = await loadRobot(scene, loadingManager);
-	// console.log(model);
-	// console.log(data);
-	// console.log(animations);
 	const charGroup = new THREE.Group();
 	charGroup.add(model);
 	scene.add(charGroup);
@@ -47,7 +44,7 @@ export async function createRobot(scene, loadingManager) {
 	};
 }
 
-export function updateRobot(character, keys, tangentBasisAt, dt) {
+export function updateRobot(character, keys, tangentBasisAt, dt, collisionManager) {
 	const {
 		charPos,
 		charForward,
@@ -59,40 +56,22 @@ export function updateRobot(character, keys, tangentBasisAt, dt) {
 		animationManager,
 	} = character;
 
-	// Gravity
-	const gravityDirection = charPos
-		.clone()
-		.normalize()
-		.multiplyScalar(MARS_GRAVITY);
-	charVelocity.addScaledVector(gravityDirection, dt);
-
-	// Update position with velocity
-	charPos.addScaledVector(charVelocity, dt);
-
-	// Ground collision and state update
-	const distanceToCenter = charPos.length();
-	if (distanceToCenter <= R) {
-		charPos.normalize().multiplyScalar(R);
-		if (charVelocity.dot(charPos.clone().normalize()) < 0) {
-			charVelocity.set(0, 0, 0);
-		}
-		charState.onGround = true;
-	} else {
-		charState.onGround = false;
-	}
-
 	const n0 = charPos.clone().normalize();
 	let currentAction = "Idle";
+	let totalMovement = new THREE.Vector3();
 
+	// 1. Calculate desired movement from controls
+	let controlMovement = new THREE.Vector3();
 	if (charState.onGround) {
-		if (keys.has("q")) charForward.applyAxisAngle(n0, +rotSpeed);
-		if (keys.has("d")) charForward.applyAxisAngle(n0, -rotSpeed);
+		if (keys.has("q")) charForward.applyAxisAngle(n0, +rotSpeed * dt);
+		if (keys.has("d")) charForward.applyAxisAngle(n0, -rotSpeed * dt);
+
 		if (keys.has("z") || keys.has("s")) {
 			const moveDirection = keys.has("z") ? 1 : -1;
-			charPos.addScaledVector(charForward, speed * moveDirection);
+			controlMovement.addScaledVector(charForward, speed * moveDirection * dt);
 			currentAction = "Walking";
 		}
-		charPos.normalize().multiplyScalar(R);
+
 		if (keys.has(" ")) {
 			charVelocity.addScaledVector(n0, 3.0);
 			charState.onGround = false;
@@ -102,11 +81,52 @@ export function updateRobot(character, keys, tangentBasisAt, dt) {
 		currentAction = "Jump";
 	}
 
+	// 2. Apply gravity to velocity only when the character is not on the ground
+	if (!charState.onGround) {
+		const gravityDirection = n0.clone().multiplyScalar(MARS_GRAVITY);
+		charVelocity.addScaledVector(gravityDirection, dt);
+	}
+
+	// 3. Combine control and physics (velocity) movements
+	totalMovement.add(controlMovement);
+	totalMovement.addScaledVector(charVelocity, dt);
+
+	// 4. Get collision-adjusted movement
+	let adjustedMovement = totalMovement;
+	if (collisionManager) {
+		adjustedMovement = collisionManager.getAdjustedMovement(totalMovement);
+	}
+	charPos.add(adjustedMovement);
+
+	// 5. Ground collision and state update
+	const distanceToCenter = charPos.length();
+	if (distanceToCenter <= R) {
+		charPos.normalize().multiplyScalar(R);
+
+		const radialVelocity = charVelocity.dot(charPos.clone().normalize());
+		if (radialVelocity < 0) {
+			charVelocity.addScaledVector(charPos.clone().normalize(), -radialVelocity);
+		}
+
+		charState.onGround = true;
+	} else {
+		charState.onGround = false;
+	}
+
+	// If movement was stopped by collision, update velocity accordingly
+	if (totalMovement.lengthSq() > 0 && adjustedMovement.lengthSq() < totalMovement.lengthSq()) {
+		// This is a simplification; true physical response would be more complex.
+		// For instance, we could zero out the velocity component normal to the collision surface.
+		charVelocity.multiplyScalar(0.9); // Dampen velocity on collision
+	}
+
+	// 6. Update animation
 	if (charState.action !== currentAction) {
 		animationManager.playAnimation(currentAction);
 		charState.action = currentAction;
 	}
 
+	// 7. Update character model orientation
 	const n1 = charPos.clone().normalize();
 	const q = new THREE.Quaternion().setFromUnitVectors(n0, n1);
 	charForward.applyQuaternion(q);

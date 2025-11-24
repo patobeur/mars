@@ -17,10 +17,10 @@ import { initUI, initDiag, setupTests } from "./ui.js";
 import Console from "./modules/console/console.js";
 import { initNavbar } from "./modules/navbar/navbar.js";
 import { ProximityManager } from "./modules/utils/ProximityManager.js";
+import { CollisionManager } from "./modules/utils/CollisionManager.js";
 import { createLoadingManager } from "./loadingManager.js";
 
 async function main() {
-	const loadingManager = createLoadingManager(() => {});
 	const renderer = new THREE.WebGLRenderer({ antialias: true });
 	const consoleContainer = document.getElementById("console");
 	const keys = new Set();
@@ -32,6 +32,7 @@ async function main() {
 		scene,
 		camera,
 		proximityManager,
+		collisionManager,
 		controls,
 		currentMode,
 		updateUI,
@@ -44,6 +45,20 @@ async function main() {
 		renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 		renderer.shadowMap.enabled = true;
 		document.body.appendChild(renderer.domElement);
+
+		// --- Managers initialisation post-loading ---
+		const loadingManager = createLoadingManager(() => {
+			console.log("All assets loaded, initializing managers...");
+
+			// --- Proximity Manager ---
+			proximityManager = new ProximityManager(character, ressources);
+
+			// --- Collision Manager ---
+			const collidableObjects = [...ressources, ...structures];
+			collisionManager = new CollisionManager(character, collidableObjects);
+
+			Console.addMessage("Managers initialized!");
+		});
 
 		// --- Console ---
 		Console.init(consoleContainer);
@@ -63,9 +78,6 @@ async function main() {
 		// --- Character (loaded asynchronously) ---
 		character = await createRobot(scene, loadingManager);
 		Console.addMessage("Robot loaded successfully!");
-
-		// --- Proximity Manager ---
-		proximityManager = new ProximityManager(character, ressources);
 
 		// --- Controls ---
 		controls = createControls(camera, renderer);
@@ -122,7 +134,7 @@ async function main() {
 	const clock = new THREE.Clock();
 	function tick() {
 		const dt = Math.min(clock.getDelta(), 0.1);
-		updateRobot(character, keys, tangentBasisAt, dt);
+		updateRobot(character, keys, tangentBasisAt, dt, collisionManager);
 		updateRessources(ressources, planet, dt);
 		updateCamera(currentMode, camera, character, controls);
 
