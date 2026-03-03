@@ -17,7 +17,7 @@ export async function createRobot(scene, loadingManager) {
 	let charVelocity = new THREE.Vector3();
 	let charState = { onGround: false, action: "Idle" };
 	let charForward = new THREE.Vector3();
-	const { speed, rotSpeed } = data;
+	const { speed, rotSpeed, collisionRadius } = data;
 
 	const animationManager = createAnimationManager(model, animations);
 	animationManager.playAnimation("Idle");
@@ -41,72 +41,82 @@ export async function createRobot(scene, loadingManager) {
 		charForward,
 		speed,
 		rotSpeed,
-		charVelocity,
+		collisionRadius,
+		// charVelocity is no longer used
 		charState,
 		animationManager,
 	};
 }
 
-export function updateRobot(character, keys, tangentBasisAt, dt) {
+export function updateRobot(character, keys, tangentBasisAt, dt, collisionManager) {
 	const {
 		charPos,
 		charForward,
 		speed,
 		rotSpeed,
 		charGroup,
-		charVelocity,
-		charState,
+		charState, // Keep for animations
 		animationManager,
 	} = character;
 
-	// Gravity
-	const gravityDirection = charPos
-		.clone()
-		.normalize()
-		.multiplyScalar(MARS_GRAVITY);
-	charVelocity.addScaledVector(gravityDirection, dt);
-
-	// Update position with velocity
-	charPos.addScaledVector(charVelocity, dt);
-
-	// Ground collision and state update
-	const distanceToCenter = charPos.length();
-	if (distanceToCenter <= R) {
-		charPos.normalize().multiplyScalar(R);
-		if (charVelocity.dot(charPos.clone().normalize()) < 0) {
-			charVelocity.set(0, 0, 0);
-		}
-		charState.onGround = true;
-	} else {
-		charState.onGround = false;
-	}
-
+    let { onGround } = charState;
+    let charVelocity = character.charVelocity || new THREE.Vector3();
 	const n0 = charPos.clone().normalize();
 	let currentAction = "Idle";
+	let desiredMovement = new THREE.Vector3();
 
-	if (charState.onGround) {
-		if (keys.has("q")) charForward.applyAxisAngle(n0, +rotSpeed);
-		if (keys.has("d")) charForward.applyAxisAngle(n0, -rotSpeed);
-		if (keys.has("z") || keys.has("s")) {
-			const moveDirection = keys.has("z") ? 1 : -1;
-			charPos.addScaledVector(charForward, speed * moveDirection);
-			currentAction = "Walking";
-		}
-		charPos.normalize().multiplyScalar(R);
-		if (keys.has(" ")) {
-			charVelocity.addScaledVector(n0, 3.0);
-			charState.onGround = false;
-			currentAction = "Jump";
-		}
-	} else {
-		currentAction = "Jump";
+    // Apply Gravity
+    if (!onGround) {
+        const gravity = n0.clone().multiplyScalar(MARS_GRAVITY * dt);
+        charVelocity.add(gravity);
+    }
+    desiredMovement.add(charVelocity);
+
+	// Handle rotation
+	if (keys.has("q")) charForward.applyAxisAngle(n0, +rotSpeed * dt);
+	if (keys.has("d")) charForward.applyAxisAngle(n0, -rotSpeed * dt);
+
+	// Calculate desired movement based on input
+	if (keys.has("z") || keys.has("s")) {
+		const moveDirection = keys.has("z") ? 1 : -1;
+		const moveVector = charForward.clone().multiplyScalar(speed * moveDirection * dt);
+		desiredMovement.add(moveVector);
+		currentAction = "Walking";
 	}
 
+    // Adjust movement for collisions
+    let collisionObject = null;
+    if (collisionManager) {
+        const collisionResult = collisionManager.adjustMovement(desiredMovement);
+        desiredMovement = collisionResult.adjustedVector;
+        collisionObject = collisionResult.collisionObject;
+    }
+
+	// Apply the (potentially adjusted) movement
+    const originalPos = charPos.clone();
+    const newPos = originalPos.add(desiredMovement);
+
+	// Project the new position onto the sphere (snapping to surface)
+    const distanceToCenter = newPos.length();
+    if (distanceToCenter <= R) {
+        newPos.normalize().multiplyScalar(R);
+        charVelocity.set(0, 0, 0); // Stop gravity effect
+        onGround = true;
+    } else {
+        onGround = false;
+    }
+    charPos.copy(newPos);
+    character.charVelocity = charVelocity;
+    charState.onGround = onGround;
+
+	// --- Animation ---
 	if (charState.action !== currentAction) {
 		animationManager.playAnimation(currentAction);
 		charState.action = currentAction;
 	}
 
+	// --- Orientation ---
+	// This part ensures the character model stays upright on the sphere
 	const n1 = charPos.clone().normalize();
 	const q = new THREE.Quaternion().setFromUnitVectors(n0, n1);
 	charForward.applyQuaternion(q);
@@ -118,6 +128,8 @@ export function updateRobot(character, keys, tangentBasisAt, dt) {
 	charGroup.lookAt(lookAt);
 
 	animationManager.update(dt);
+
+    return { collisionObject };
 }
 
 export function tangentBasisAt(pos) {

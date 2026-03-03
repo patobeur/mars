@@ -75,23 +75,19 @@ export class Structures {
 			this.spawnStructures(n, type, this.models[type]);
 		} else {
 			this.loader.load(this.structuresPath + typeInfo.model, (gltf) => {
-				let CurrentModel = gltf.scene.children[0];
-				console.log("Current Structure", CurrentModel);
+				const model = gltf.scene;
+				model.scale.set(typeInfo.scale, typeInfo.scale, typeInfo.scale);
 
-				CurrentModel.scale.set(
-					typeInfo.scale,
-					typeInfo.scale,
-					typeInfo.scale
-				);
+                // Pre-calculate bounding box for positioning
+				const box = new THREE.Box3().setFromObject(model);
+				model.y_min = box.min.y;
 
-				const box = new THREE.Box3().setFromObject(CurrentModel);
+				if (typeInfo.trigger_entry) {
+					this.add_contact_trigger(model);
+				}
 
-				CurrentModel.y_min = box.min.y;
-				CurrentModel.x_min = box.max.x - box.min.x;
-
-				if (typeInfo.trigger_entry) this.add_contact_trigger(CurrentModel);
-				this.models[type] = CurrentModel;
-				this.spawnStructures(n, type, CurrentModel);
+				this.models[type] = model;
+				this.spawnStructures(n, type, model);
 			});
 		}
 	};
